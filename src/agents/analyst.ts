@@ -96,7 +96,8 @@ async function modelDraft(ctx: Context, computed: Claim[], issues: string[], tra
 Write claims a business reader can act on. Every claim must cite the query ids whose numbers it uses, and every number must come from those queries.
 Reply with ONE JSON object only:
 {"summary":"<two sentences: what changed and the main reason>",
- "claims":[{"kind":"overall|price_volume|baseline|driver|drilldown|context|ruled_out","text":"...","evidence":["Q1"],"dimension":"<dimension id or omit>","member":"<member or omit>"}]}
+ "claims":[{"kind":"overall|price_volume|baseline|driver|drilldown|context|ruled_out","text":"...","evidence":["Q1"],"dimension":"<dimension id, only for driver/drilldown/ruled_out>","member":"<exact value from the cited query, only for driver/drilldown>"}]}
+Leave out "dimension" and "member" when they do not apply.
 Include one overall claim, the price/volume split, the company-wide comparison when there is one, the main drivers, any drill-downs, what the CRM events say about why (kind "context", citing the CRM query), and what was ruled out. Only call something a cause when the CRM or the data shows the mechanism; otherwise call it a driver.`;
   const user = `Question: ${ctx.plan.question}\n\nQuery results:\n${factsText(ctx)}\n\nPre-computed findings:\n${computed.map((c) => `- (${c.kind}) ${c.text}`).join("\n")}${
     issues.length ? `\n\nThe Critic rejected the previous draft. Fix every one of these:\n${issues.map((i) => `- ${i}`).join("\n")}` : ""
@@ -113,11 +114,24 @@ Include one overall claim, the price/volume split, the company-wide comparison w
       text: String(c.text ?? ""),
       evidence: Array.isArray(c.evidence) ? c.evidence.map(String) : [],
       dimension: c.dimension && c.dimension in DIMENSIONS ? c.dimension : undefined,
-      member: c.member ? String(c.member) : undefined,
+      member: cleanMember(c.member, Array.isArray(c.evidence) ? c.evidence.map(String) : [], ctx),
     }));
     return { summary: String(o.summary ?? ""), claims, mode: "model" as const };
   });
   return value;
+}
+
+// Keeps a claim's member only when it is an exact value in one of the cited
+// queries (matched case-insensitively and restored to the stored spelling).
+function cleanMember(raw: unknown, evidence: string[], ctx: Context): string | undefined {
+  if (typeof raw !== "string" || !raw.trim()) return undefined;
+  const want = raw.trim().toUpperCase();
+  for (const id of evidence) {
+    const q = ctx.queries.find((x) => x.id === id);
+    const hit = q?.kind === "breakdown" ? q.rows.find((r) => String(r[0]).toUpperCase() === want) : undefined;
+    if (hit) return String(hit[0]);
+  }
+  return undefined;
 }
 
 // The deterministic findings: what the numbers say before any model writes prose.
@@ -199,7 +213,7 @@ export function computeClaims(ctx: Context): Claim[] {
         kind: "ruled_out",
         evidence: [q.id],
         dimension: q.dimension,
-        text: `By ${label}${within}, every value moves in line with the overall trend (largest: ${titleCase(loudest.member)}, ${Math.abs(loudest.z).toFixed(1)} standard deviations), so ${label} does not explain the change.`,
+        text: `By ${label}${within}, no value moves significantly differently from the overall trend (largest: ${titleCase(loudest.member)}, ${Math.abs(loudest.z).toFixed(1)} standard deviations), so ${label} does not explain the change.`,
       });
     }
   }

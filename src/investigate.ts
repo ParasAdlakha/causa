@@ -92,11 +92,12 @@ export async function investigate(question: string, onEvent?: TraceListener): Pr
   return result;
 }
 
-// Model agents run through Nightshift when it is online; otherwise (or in
-// SAMPLE_MODE) the rule-based agents run, and the trace says so.
+// Model agents run through Nightshift when it is online; otherwise (or with
+// CAUSA_OFFLINE=true) the rule-based agents run, and the trace says so.
+// SAMPLE_MODE only swaps the data layer.
 async function chooseMode(trace: Trace): Promise<Mode> {
-  if (config.sampleMode) {
-    trace.log({ agent: "Orchestrator", action: "select_mode", status: "info", output_summary: "SAMPLE_MODE: sample data + rule-based agents (no model calls)" });
+  if (config.forceOffline) {
+    trace.log({ agent: "Orchestrator", action: "select_mode", status: "info", output_summary: "CAUSA_OFFLINE: rule-based agents (no model calls)" });
     return "offline";
   }
   const s = await providerStatus();

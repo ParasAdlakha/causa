@@ -40,7 +40,8 @@ export async function chat(messages: ChatMessage[], opts: { deep?: boolean; temp
   const started = Date.now();
   const res = await fetch(`${config.meterless.baseUrl}/chat/completions`, {
     method: "POST",
-    headers: { ...headers(), "meterless-scope": "user", "Content-Type": "application/json" },
+    // meterless-ttfb raises Nightshift's first-token limit: hosted Nemotron can queue on the free tier.
+    headers: { ...headers(), "meterless-scope": "user", "meterless-ttfb": "120000", "Content-Type": "application/json" },
     body: JSON.stringify({
       model: opts.deep ? config.meterless.modelDeep : config.meterless.model,
       messages,

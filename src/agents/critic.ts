@@ -81,7 +81,8 @@ export async function critique(ctx: Context, draft: Draft, round: number, maxRev
     checks.push({ name: "a driver was found", passed: true, detail: "at least one dimension concentrates the change" });
   }
 
-  if (mode === "model") {
+  // Nemotron challenges the first draft; later rounds only verify that its points were addressed.
+  if (mode === "model" && round === 1) {
     try {
       const challenge = await modelChallenge(ctx, draft, trace);
       issues.push(...challenge.issues);
@@ -155,7 +156,8 @@ Reply with ONE JSON object only: {"issues":["<concrete problem with a claim, max
   ], (v) => {
     const o = v as Record<string, any>;
     const issues = (Array.isArray(o.issues) ? o.issues : []).map(String).filter((s: string) => s.trim()).slice(0, 3);
-    const fixed = new Set(ctx.plan.focus.map((f) => f.dimension));
+    const fixed = new Set<DimensionId>(ctx.plan.focus.map((f) => f.dimension));
+    if (fixed.has("customer_nation")) fixed.add("customer_region");
     const requests: Request[] = (Array.isArray(o.test) ? o.test : [])
       .filter((t: any) => DIMENSION_IDS.includes(t.dimension) && !tested.includes(t.dimension) && !fixed.has(t.dimension))
       .slice(0, 2)

@@ -230,7 +230,7 @@ export function crmSql(wh: Warehouse, a: Period, b: Period, filters: Filter[], c
 FROM ${wh.table("account_events")} e
   ${joins.join("\n  ")}
 WHERE ${conds.join("\n  AND ")}
-ORDER BY e.event_date
+ORDER BY CASE e.event_type WHEN 'contract_ended' THEN 0 WHEN 'new_contract' THEN 0 WHEN 'price_renegotiated' THEN 1 WHEN 'tender' THEN 2 ELSE 3 END, e.event_date
 LIMIT ${limit}`;
 }
 

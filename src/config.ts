@@ -14,6 +14,7 @@ const env = (name: string, fallback = ""): string => (process.env[name] ?? fallb
 
 export const config = {
   sampleMode: env("SAMPLE_MODE", "false").toLowerCase() === "true",
+  forceOffline: env("CAUSA_OFFLINE", "false").toLowerCase() === "true",
   port: Number(env("PORT", "8790")),
   zetaris: {
     restUrl: env("ZETARIS_REST_URL", "http://localhost:8888/api/v1.0").replace(/\/+$/, ""),
@@ -25,7 +26,7 @@ export const config = {
   },
   meterless: {
     baseUrl: normaliseBaseUrl(env("METERLESS_BASE_URL", "http://127.0.0.1:8088/v1")),
-    token: env("METERLESS_RUNTIME_TOKEN"),
+    token: env("METERLESS_RUNTIME_TOKEN") || runtimeTokenFromDisk(),
     model: env("METERLESS_MODEL", "meterless/auto"),
     modelDeep: env("METERLESS_MODEL_DEEP", env("METERLESS_MODEL", "meterless/auto")),
     app: "causa",
@@ -42,6 +43,27 @@ export const config = {
     maxLlmRetries: 1,
   },
 };
+
+// Per the Meterless provider contract the runtime writes its token to
+// <stateDir>/proxy-token; on the same machine Causa reads it from there, so the
+// token never has to be copied into a file by hand.
+function runtimeTokenFromDisk(): string {
+  const candidates = [
+    process.env.METERLESS_TOKEN_FILE,
+    process.env.LOCALAPPDATA && path.join(process.env.LOCALAPPDATA, "ai.meterless.runtime", "proxy-token"),
+    process.env.HOME && path.join(process.env.HOME, "Library", "Application Support", "ai.meterless.runtime", "proxy-token"),
+    process.env.HOME && path.join(process.env.HOME, ".local", "share", "ai.meterless.runtime", "proxy-token"),
+  ].filter((p): p is string => !!p);
+  for (const file of candidates) {
+    try {
+      const token = fs.readFileSync(file, "utf-8").trim();
+      if (token) return token;
+    } catch {
+      // not on this platform
+    }
+  }
+  return "";
+}
 
 // Per the Meterless provider contract: accept a pasted URL with or without a
 // scheme, /v1, /v1/chat/completions, /v1/models or /healthz, and normalise to <host>/v1.
