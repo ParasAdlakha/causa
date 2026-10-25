@@ -242,7 +242,12 @@ Data steps carry the query id and SQL. Model steps carry `model`, `duration_ms` 
 
 All four ran live on Zetaris with Nemotron through Nightshift. Full results, readable answers and traces are in [`output_examples/`](output_examples). Causa never reads them, and a test checks that.
 
-<!-- EXAMPLES TABLE -->
+| Question | Change | What Causa found | Confidence | Queries | Revisions | Time | Files |
+|---|---|---|---|---|---|---|---|
+| Germany, Q3 1996 vs Q3 1995 | -15.1% | Three Automobile accounts lost their fleet-parts tender to a cheaper competitor (CRM, 28 June 1996) | 95% | 9 | 1 | 10 min | [answer](output_examples/germany_q3_1996.md) · [JSON](output_examples/germany_q3_1996.json) · [trace](output_examples/germany_q3_1996.trace.jsonl) |
+| France, Q1 1997 vs Q1 1996 | +2.5% | Revenue per unit −9%: a winter volume-discount programme (CRM: price renegotiated); more units at less revenue each | 85% | 11 | 2 | 12 min | [answer](output_examples/france_q1_1997.md) · [JSON](output_examples/france_q1_1997.json) · [trace](output_examples/france_q1_1997.trace.jsonl) |
+| United States, 1997 vs 1996 | +6.5% | Two Machinery customers won in December 1996 added $15.6M while other segments slipped (CRM: new contract) | 95% | 8 | 1 | 7 min | [answer](output_examples/united_states_1997.md) · [JSON](output_examples/united_states_1997.json) · [trace](output_examples/united_states_1997.trace.jsonl) |
+| Japan, Q2 1996 vs Q2 1995 (control) | -16.1% | A real drop spread across accounts; no contract, tender or pricing event in the CRM, so the cause is reported as not established | 70% | 10 | 1 | 9 min | [answer](output_examples/japan_q2_1996_control.md) · [JSON](output_examples/japan_q2_1996_control.json) · [trace](output_examples/japan_q2_1996_control.trace.jsonl) |
 
 The data has three planted stories, and the agents are never told about them. Japan is a control with none: Causa reports a real drop but doesn't invent a cause.
 
@@ -296,7 +301,7 @@ On Windows PowerShell: `$env:SAMPLE_MODE="true"; $env:CAUSA_OFFLINE="true"; npm 
    npm run zetaris:register      # registers causa_erp and causa_crm, then a federated check
    npm run status                # data layer: zetaris -> online · nightshift -> online
    ```
-5. **Run:** `npm start` and open http://localhost:3100. A live investigation takes 7–14 minutes.
+5. **Run:** `npm start` and open http://localhost:3100. A live investigation takes 7–16 minutes on a laptop.
 
 **Use it from code:**
 
@@ -357,7 +362,7 @@ docs/                 Slides, videos, screenshots, project page, market brief, s
 **Limitations today**
 - **Revenue only:** the question must be about revenue for one focus (a country, region or segment) between two periods.
 - **Synthetic data with planted stories:** real data will produce more ambiguous drivers. A random dimension sometimes clears the significance test, as order priority did in the France run. The Critic doesn't yet judge whether a driver is plausible in business terms, and there's no multiple-comparisons correction.
-- **Speed:** a live run takes 7–14 minutes on a laptop with hosted reasoning models. The rule-based mode takes about 15 seconds.
+- **Speed:** a live run takes 7–16 minutes on a laptop with hosted reasoning models. The rule-based mode takes about 15 seconds.
 - **One investigation at a time** per server, and no user accounts.
 - **Evidence, not proof:** a matching CRM event supports a cause but doesn't prove it. The report says what it found and its confidence.
 

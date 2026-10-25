@@ -64,7 +64,7 @@
 ## Constraints
 
 - [x] Runs from a clean setup with no manual steps (`npm ci`, `docker compose up -d`, `npm run zetaris:register`, `npm start`; or sample mode with no services)
-- [x] Runs quickly and predictably (≈15 s rule-based; 7–9 min with hosted Nemotron)
+- [x] Runs quickly and predictably (≈15 s rule-based; 7–16 min with hosted Nemotron on a laptop)
 - [x] Repository is light (≈5 MB of data, no binaries beyond the compressed seed)
 - [x] No hardcoded outputs (tests compare report figures with independent SQL; runtime never reads `output_examples/`)
 - [x] No committed API keys (`.env` is git-ignored; the git history was scanned)
@@ -80,7 +80,7 @@
 | Do we know who the user is? | 2 |
 | Do we have accessible data we can serve through Zetaris? | 2 |
 | Can we build a working version in 144 hours? | 2 (built) |
-| Can it run quickly and predictably? | 1 (live runs take 7–9 minutes, because of hosted reasoning models) |
+| Can it run quickly and predictably? | 1 (live runs take 7–16 minutes, because of hosted reasoning models) |
 | Do Zetaris and a Meterless Engine have a real role in the build? | 2 |
 | Do agents interact more than once? | 2 |
 | Is there critique, validation, or retry? | 2 |

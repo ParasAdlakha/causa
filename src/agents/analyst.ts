@@ -4,7 +4,7 @@
 // the query behind each number. When the Critic sends work back, it runs the
 // extra queries asked for and redrafts.
 
-import { DIMENSIONS, Evidence, breakdownSql, crmSql, isDriver, money, pct, readMembers, readTotals, totalsSql, type EvidenceQuery, type Filter } from "../analysis.ts";
+import { DIMENSIONS, Evidence, breakdownSql, crmSql, isDriver, money, pct, readMembers, readTotals, totalsSql, type DimensionId, type EvidenceQuery, type Filter } from "../analysis.ts";
 import type { Warehouse } from "../data/warehouse.ts";
 import { chatJson } from "../llm.ts";
 import type { Trace } from "../trace.ts";
@@ -108,28 +108,30 @@ Include one overall claim, the price/volume split, the company-wide comparison w
   ], (v) => {
     const o = v as Record<string, any>;
     if (!Array.isArray(o.claims) || !o.claims.length) throw new Error("claims must be a non-empty array");
-    const claims: Claim[] = o.claims.map((c: any, i: number) => ({
-      id: `C${i + 1}`,
-      kind: ["overall", "price_volume", "baseline", "driver", "drilldown", "ruled_out", "context"].includes(c.kind) ? c.kind : "driver",
-      text: String(c.text ?? ""),
-      evidence: Array.isArray(c.evidence) ? c.evidence.map(String) : [],
-      dimension: c.dimension && c.dimension in DIMENSIONS ? c.dimension : undefined,
-      member: cleanMember(c.member, Array.isArray(c.evidence) ? c.evidence.map(String) : [], ctx),
-    }));
+    const claims: Claim[] = o.claims.map((c: any, i: number) => {
+      const kind = ["overall", "price_volume", "baseline", "driver", "drilldown", "ruled_out", "context"].includes(c.kind) ? c.kind : "driver";
+      const evidence: string[] = Array.isArray(c.evidence) ? c.evidence.map(String) : [];
+      const hit = cleanMember(c.member, evidence, ctx);
+      // The model often leaves out "dimension": the cited breakdown query knows it.
+      const cited = ctx.queries.find((q) => evidence.includes(q.id) && q.kind === "breakdown" && q.dimension);
+      const dimension = hit?.dimension ?? (c.dimension && c.dimension in DIMENSIONS ? c.dimension : undefined) ?? (["driver", "drilldown", "ruled_out"].includes(kind) ? cited?.dimension : undefined);
+      return { id: `C${i + 1}`, kind, text: String(c.text ?? ""), evidence, dimension, member: hit?.member };
+    });
     return { summary: String(o.summary ?? ""), claims, mode: "model" as const };
   });
   return value;
 }
 
 // Keeps a claim's member only when it is an exact value in one of the cited
-// queries (matched case-insensitively and restored to the stored spelling).
-function cleanMember(raw: unknown, evidence: string[], ctx: Context): string | undefined {
+// queries (matched case-insensitively and restored to the stored spelling),
+// together with that query's dimension.
+function cleanMember(raw: unknown, evidence: string[], ctx: Context): { member: string; dimension?: DimensionId } | undefined {
   if (typeof raw !== "string" || !raw.trim()) return undefined;
   const want = raw.trim().toUpperCase();
   for (const id of evidence) {
     const q = ctx.queries.find((x) => x.id === id);
     const hit = q?.kind === "breakdown" ? q.rows.find((r) => String(r[0]).toUpperCase() === want) : undefined;
-    if (hit) return String(hit[0]);
+    if (hit) return { member: String(hit[0]), dimension: q!.dimension };
   }
   return undefined;
 }
