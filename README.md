@@ -6,11 +6,11 @@ Revenue in Germany fell 15% last quarter. Why? Today an analyst spends a day fin
 
 Built by **Paras Adlakha** and **Harshita Adlakha** for the **Open Agent Hackathon 2026**, Track 2: *The Agent That Can Explain Why*.
 
-**🎬 [Narrated 2-minute demo](docs/video/Causa-demo-2min.mp4)** · [3-minute pitch video](docs/video/Causa-pitch-3min.mp4) · [Captioned walkthrough (silent)](docs/video/Causa-demo.mp4) · **📑 [Slides (PDF)](docs/slides/Causa-slides.pdf)** · [PowerPoint](docs/slides/Causa-slides.pptx) · [Project page](https://parasadlakha.github.io/causa/) · [Market brief](docs/market-brief.html)
+**▶️ [Replay real runs in the browser](https://parasadlakha.github.io/causa/app/)** · **🎬 [Narrated 2-minute demo](docs/video/Causa-demo-2min.mp4)** · [3-minute pitch video](docs/video/Causa-pitch-3min.mp4) · [Captioned walkthrough (silent)](docs/video/Causa-demo.mp4) · **📑 [Slides (PDF)](docs/slides/Causa-slides.pdf)** · [PowerPoint](docs/slides/Causa-slides.pptx) · [Project page](https://parasadlakha.github.io/causa/) · [Market brief](docs/market-brief.html)
 
 ![Causa: the agents at work on the left, the cited answer on the right](docs/img/done.png)
 
-*A real run on Zetaris and Nemotron. Left: every agent step as it happened, including the Critic's revision request and the model that answered each call. Right: the answer, where each [Qn] opens the SQL and rows behind it.*
+*A real run on Zetaris and Nemotron ([replay it](https://parasadlakha.github.io/causa/app/)). Left: every agent step as it happened, including the Critic's revision request and the model that answered each call. Right: the answer, where each [Qn] opens the SQL and rows behind it.*
 
 **Contents:** [The hackathon](#the-hackathon) · [The problem](#the-problem) · [What Causa does](#what-causa-does) · [Architecture](#architecture) · [How an investigation works](#how-an-investigation-works) · [The agents](#the-agents) · [Zetaris](#zetaris-the-data-layer) · [Meterless H-MEM](#meterless-h-mem-investigation-memory) · [Nightshift and Nemotron](#meterless-nightshift-and-nvidia-nemotron) · [Evidence and traces](#evidence-and-traces) · [Real runs](#real-runs) · [Tests](#tests) · [Run it yourself](#run-it-yourself) · [Repository layout](#repository-layout) · [What we learned](#what-we-learned) · [Limitations and roadmap](#limitations-and-roadmap) · [Pre-existing components](#pre-existing-components) · [Team](#team) · [References](#references)
 
@@ -340,7 +340,7 @@ data/                 Seed for SAMPLE_MODE and the data README
 vendor/hmem/          Meterless H-MEM reference engine and conformance suite (Apache-2.0)
 input_examples/       Questions; output_examples/ holds real results and traces
 test/                 Pipeline and unit tests
-docs/                 Slides, videos, screenshots, project page, market brief, submission texts
+docs/                 Project page, replay app (docs/app), slides, videos, screenshots, market brief, submission texts
 ```
 
 ---

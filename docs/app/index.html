@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Causa replay</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232f5d50'/%3E%3Cpath d='M21.5 11.3a6.6 6.6 0 1 0 0 9.4l-2.3-2.2a3.4 3.4 0 1 1 0-5z' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+  /* The Causa web UI (public/index.html), playing back recorded live runs instead of calling the server. */
+  :root {
+    --bg: #f6f5f1; --panel: #ffffff; --ink: #1d1c1a; --muted: #6b6860; --line: #e3e0d8;
+    --accent: #2f5d50; --accent-soft: #e4eee9; --warn: #9a5b13; --bad: #a3322a; --good: #2f6b3a;
+    --planner: #5b4fa8; --analyst: #2f6f9e; --critic: #a3532a; --reporter: #2f6b3a; --orch: #6b6860;
+    --mono: ui-monospace, "Cascadia Code", Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #141413; --panel: #1d1c1a; --ink: #ecebe6; --muted: #a09d94; --line: #33312d;
+      --accent: #8cc4ae; --accent-soft: #23302b; --warn: #e0a95a; --bad: #e88b82; --good: #8cc79a;
+      --planner: #a79cf0; --analyst: #84b9e0; --critic: #e9a27a; --reporter: #8cc79a; --orch: #a09d94;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header { padding: 22px 16px 8px; max-width: 1240px; margin: 0 auto; display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 18px; }
+  h1 { margin: 0; font-size: 26px; letter-spacing: -0.5px; }
+  h1 a { color: inherit; text-decoration: none; }
+  .tag { color: var(--muted); }
+  .pills { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+  .pill { font-size: 12.5px; padding: 3px 10px; border-radius: 99px; border: 1px solid var(--line); background: var(--panel); color: var(--muted); }
+  .pill b { font-weight: 600; color: var(--good); }
+  main { max-width: 1240px; margin: 0 auto; padding: 8px 16px 40px; }
+  .banner { background: var(--accent-soft); color: var(--ink); border-radius: 12px; padding: 12px 16px; font-size: 14px; margin: 6px 0 14px; }
+  .banner a { color: var(--accent); font-weight: 600; }
+  .runs { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; margin-bottom: 12px; }
+  .run { text-align: left; font: inherit; cursor: pointer; border-radius: 12px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; }
+  .run small { color: var(--muted); font-family: var(--mono); font-size: 11.5px; }
+  .run[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+  .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin: 4px 0 18px; font-size: 13.5px; color: var(--muted); }
+  .controls label { display: flex; align-items: center; gap: 8px; }
+  button.ctl { font: inherit; cursor: pointer; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); padding: 7px 14px; }
+  button.ctl.primary { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 600; }
+  #clock { font-family: var(--mono); }
+  .grid { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 18px; align-items: start; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+  section { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; min-width: 0; }
+  section h2 { margin: 0 0 10px; font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; }
+  .empty { color: var(--muted); font-size: 14px; }
+  #timeline { list-style: none; margin: 0; padding: 0; max-height: 640px; overflow-y: auto; }
+  #timeline li { display: grid; grid-template-columns: 26px 92px 1fr; gap: 8px; padding: 6px 0; border-bottom: 1px dashed var(--line); font-size: 13px; }
+  #timeline li:last-child { border-bottom: 0; }
+  .step { color: var(--muted); font-family: var(--mono); font-size: 12px; }
+  .agent { font-weight: 600; font-size: 12.5px; }
+  .a-PlannerAgent { color: var(--planner); } .a-AnalystAgent { color: var(--analyst); } .a-CriticAgent { color: var(--critic); } .a-ReporterAgent { color: var(--reporter); } .a-Orchestrator { color: var(--orch); }
+  .action { font-family: var(--mono); font-size: 12px; }
+  .handoff { color: var(--muted); }
+  .model { display: inline-block; font-size: 11px; padding: 0 6px; border-radius: 6px; background: var(--accent-soft); color: var(--accent); font-family: var(--mono); }
+  .st-error, .st-fallback { color: var(--warn); }
+  .summary { color: var(--muted); word-break: break-word; }
+  #report h3 { font-size: 16px; margin: 18px 0 6px; }
+  #report p, #report li { margin: 6px 0; }
+  #report ul { padding-left: 20px; }
+  .lead { font-size: 17px; }
+  .cite { font-family: var(--mono); font-size: 11.5px; color: var(--accent); background: var(--accent-soft); border-radius: 5px; padding: 0 4px; text-decoration: none; }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 0; padding-top: 12px; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--muted); }
+  .meta span { background: var(--bg); border-radius: 6px; padding: 2px 8px; }
+  .conf { font-weight: 600; color: var(--good); }
+  details { border-top: 1px solid var(--line); padding: 8px 0; }
+  details:first-of-type { border-top: 0; }
+  summary { cursor: pointer; font-size: 13.5px; }
+  summary code { font-family: var(--mono); color: var(--accent); }
+  pre { font-family: var(--mono); font-size: 12px; background: var(--bg); padding: 10px; border-radius: 8px; overflow-x: auto; white-space: pre-wrap; }
+  table { border-collapse: collapse; font-size: 12px; width: 100%; display: block; overflow-x: auto; }
+  th, td { text-align: left; padding: 3px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th { color: var(--muted); font-weight: 600; }
+  details.hit { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 4px; }
+  .spinner { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); animation: pulse 1s infinite ease-in-out; margin-right: 6px; }
+  @keyframes pulse { 50% { opacity: .25; } }
+  .stack { display: grid; gap: 18px; }
+  footer { max-width: 1240px; margin: 0 auto; padding: 0 16px 30px; color: var(--muted); font-size: 12.5px; }
+</style>
+</head>
+<body>
+<header>
+  <h1><a href="../">Causa</a></h1>
+  <span class="tag">Ask why a number moved. Agents test each explanation in your data and answer with cited evidence.</span>
+  <div class="pills"><span class="pill">Zetaris: <b>recorded</b></span><span class="pill">Nightshift: <b>recorded</b></span><span class="pill">nemotron-3.5-lightning · nemotron-3-ultra</span></div>
+</header>
+<main>
+  <div class="banner"><b>Replay of real runs.</b> Each run was recorded live on 25 October 2026, with SQL in Zetaris and reasoning on NVIDIA Nemotron through Meterless Nightshift. This page plays back its trace, step by step, in Causa's own UI. To ask your own question, run Causa yourself: <a href="https://github.com/ParasAdlakha/causa#run-it-yourself">setup takes a few minutes</a>, and sample mode needs no services.</div>
+  <div class="runs" id="runs"></div>
+  <div class="controls">
+    <button class="ctl primary" id="play" type="button">Replay</button>
+    <label>Speed <input type="range" id="speed" min="10" max="120" step="5" value="40"> <span id="speedv">40×</span></label>
+    <button class="ctl" id="skip" type="button">Skip to the answer</button>
+    <span id="clock"></span>
+  </div>
+  <div class="grid">
+    <section>
+      <h2>Agents at work</h2>
+      <div id="status" class="empty">Pick a run and press Replay. Each step appears with its real timing: the plan, every SQL query sent to Zetaris, the Critic's challenge, the revisions, and which Nemotron model answered each call.</div>
+      <ol id="timeline"></ol>
+    </section>
+    <div class="stack">
+      <section>
+        <h2>Answer</h2>
+        <div id="report" class="empty">The cited answer appears here.</div>
+      </section>
+      <section>
+        <h2>Evidence</h2>
+        <div id="evidence" class="empty">Every query the agents ran, with its SQL and result rows.</div>
+      </section>
+    </div>
+  </div>
+</main>
+<footer>Recorded traces and results: <a href="https://github.com/ParasAdlakha/causa/tree/main/output_examples">output_examples/</a> · <a href="../">Project page</a> · <a href="https://github.com/ParasAdlakha/causa">Source</a></footer>
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const LABELS = { germany_q3_1996: "Germany, Q3 1996", france_q1_1997: "France, Q1 1997", united_states_1997: "United States, 1997", japan_q2_1996_control: "Japan, Q2 1996 (control)" };
+let runs = [], current = null, timer = null, cursor = 0, playing = false;
+
+// --- the same rendering as the live app (public/index.html) ---------------------------
+function addStep(e) {
+  const li = document.createElement("li");
+  const to = e.target_agent ? ` <span class="handoff">→ ${esc(e.target_agent.replace("Agent", ""))}</span>` : "";
+  const model = e.model ? ` <span class="model">${esc(e.model.split("/").pop())}</span>` : "";
+  li.innerHTML = `<span class="step">${e.step}</span><span class="agent a-${esc(e.agent)}">${esc(e.agent.replace("Agent", ""))}${to}</span>` +
+    `<span><span class="action st-${esc(e.status)}">${esc(e.action)}</span>${model}<br><span class="summary">${esc(e.output_summary || e.input_summary || "")}</span></span>`;
+  $("timeline").append(li);
+  $("timeline").scrollTop = $("timeline").scrollHeight;
+}
+function inline(s) {
+  return esc(s).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/\[(Q\d+)\]/g, '<a class="cite" href="#ev-$1" data-q="$1">$1</a>');
+}
+function markdown(md) {
+  const out = []; let list = false, first = true;
+  for (const raw of md.split(/\r?\n/)) {
+    const line = raw.trim();
+    if (/^[-*] /.test(line)) { if (!list) { out.push("<ul>"); list = true; } out.push(`<li>${inline(line.slice(2))}</li>`); continue; }
+    if (list) { out.push("</ul>"); list = false; }
+    if (!line || /^---+$/.test(line)) continue;
+    const h = line.match(/^#{1,4}\s+(.*)/);
+    if (h) out.push(`<h3>${inline(h[1])}</h3>`);
+    else { out.push(`<p class="${first ? "lead" : ""}">${inline(line)}</p>`); first = false; }
+  }
+  if (list) out.push("</ul>");
+  return out.join("");
+}
+function showResult(r) {
+  const rep = r.report;
+  $("report").classList.remove("empty");
+  $("report").innerHTML = markdown(rep.markdown) +
+    `<div class="meta"><span class="conf">confidence ${(rep.confidence * 100).toFixed(0)}%</span><span>${r.evidence.length} queries on ${esc(r.data_source)}</span>` +
+    `<span>${r.collaboration.revision_count} revision(s)</span><span>${r.collaboration.agents_used.length} agents</span>` +
+    `<span>models: ${esc(r.models_used.map((m) => m.split("/").pop()).join(", "))}</span><span>${(r.duration_ms / 60000).toFixed(0)} min live</span><span>trace: ${esc(r.trace_id)}</span></div>`;
+  for (const a of $("report").querySelectorAll(".cite")) a.onclick = () => openEvidence(a.dataset.q);
+  $("evidence").classList.remove("empty");
+  $("evidence").innerHTML = r.evidence.map((q) =>
+    `<details id="ev-${esc(q.id)}"><summary><code>${esc(q.id)}</code> ${esc(q.purpose)} <span class="summary">· ${q.rows.length} rows · ${q.ms} ms · asked by ${esc(q.requestedBy.replace("Agent", ""))}</span></summary>` +
+    `<pre>${esc(q.sql)}</pre><table><tr>${q.columns.map((c) => `<th>${esc(c)}</th>`).join("")}</tr>` +
+    q.rows.slice(0, 15).map((row) => `<tr>${row.map((v) => `<td>${esc(v)}</td>`).join("")}</tr>`).join("") + `</table></details>`).join("");
+}
+function openEvidence(id) {
+  const d = $("ev-" + id); if (!d) return;
+  d.open = true; d.classList.add("hit"); setTimeout(() => d.classList.remove("hit"), 1600);
+}
+
+// --- playback ------------------------------------------------------------------------
+const speed = () => Number($("speed").value);
+const ts = (e) => Date.parse(e.timestamp);
+function reset() {
+  clearTimeout(timer); playing = false; cursor = 0;
+  $("timeline").innerHTML = ""; $("clock").textContent = "";
+  $("report").className = "empty"; $("report").textContent = "The cited answer appears here.";
+  $("evidence").className = "empty"; $("evidence").textContent = "Every query the agents ran, with its SQL and result rows.";
+  $("play").textContent = "Replay";
+}
+function finish() {
+  playing = false; $("play").textContent = "Replay again";
+  $("status").textContent = "Done.";
+  showResult(current.result);
+}
+function tick() {
+  const ev = current.events;
+  if (cursor >= ev.length) return finish();
+  addStep(ev[cursor]);
+  $("clock").textContent = `${((ts(ev[cursor]) - ts(ev[0])) / 1000).toFixed(0)} s into the live run`;
+  cursor++;
+  if (cursor >= ev.length) return finish();
+  const gap = (ts(ev[cursor]) - ts(ev[cursor - 1])) / speed();
+  timer = setTimeout(tick, Math.min(4000, Math.max(120, gap)));
+}
+function play() {
+  if (!current) return;
+  reset(); playing = true; $("play").textContent = "Replaying…";
+  $("status").className = ""; $("status").innerHTML = `<span class="spinner"></span>Replaying the recorded run at ${speed()}×.`;
+  $("report").textContent = "Waiting for the agents…";
+  tick();
+}
+function skip() {
+  if (!current) return;
+  if (!playing) reset();
+  clearTimeout(timer);
+  while (cursor < current.events.length) addStep(current.events[cursor++]);
+  finish();
+}
+async function select(name) {
+  for (const b of $("runs").children) b.setAttribute("aria-pressed", String(b.dataset.name === name));
+  reset();
+  $("status").className = "empty"; $("status").textContent = "Loading the recorded run…";
+  current = await (await fetch(`runs/${name}.json`)).json();
+  $("status").textContent = `"${current.result.question}" Press Replay to watch the agents work, or skip to the answer.`;
+}
+$("speed").oninput = () => { $("speedv").textContent = `${speed()}×`; };
+$("play").onclick = play;
+$("skip").onclick = skip;
+
+(async () => {
+  runs = await (await fetch("runs/index.json")).json();
+  const order = ["germany_q3_1996", "france_q1_1997", "united_states_1997", "japan_q2_1996_control"];
+  runs.sort((a, b) => order.indexOf(a.name) - order.indexOf(b.name));
+  for (const r of runs) {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "run"; b.dataset.name = r.name;
+    b.innerHTML = `<b>${esc(LABELS[r.name] || r.name)}</b><span>${esc(r.question)}</span><small>confidence ${(r.confidence * 100).toFixed(0)}% · ${r.queries} queries · ${(r.duration_ms / 60000).toFixed(0)} min live</small>`;
+    b.onclick = () => select(r.name);
+    $("runs").append(b);
+  }
+  const want = new URLSearchParams(location.search).get("run");
+  await select(runs.some((r) => r.name === want) ? want : runs[0].name);
+})();
+</script>
+</body>
+</html>

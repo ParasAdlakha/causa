@@ -15,7 +15,8 @@
     "test": "tsx --test test/*.test.ts",
     "conformance": "node scripts/conformance.mjs",
     "zetaris:register": "tsx scripts/register-zetaris.ts",
-    "examples": "tsx scripts/run-examples.ts"
+    "examples": "tsx scripts/run-examples.ts",
+    "replays": "tsx scripts/export-replays.ts"
   },
   "devDependencies": {
     "tsx": "^4.19.0"
