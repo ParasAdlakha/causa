@@ -1,0 +1,7 @@
+node_modules
+.env
+.env.local
+.memory
+logs
+output_examples
+docker

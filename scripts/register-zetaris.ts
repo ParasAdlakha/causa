@@ -1,36 +1,41 @@
 // Registers the ERP and CRM Postgres databases (docker-compose.yml) in Zetaris
-// as the causa_erp and causa_crm data sources, then registers their tables.
-// Safe to re-run: sources and tables that already exist are left alone.
+// by running scripts/register_zetaris_sources.sql, then checks a federated
+// query across both. Safe to re-run: what already exists is left alone.
+//   npm run zetaris:register
 
+import fs from "node:fs";
+import path from "node:path";
 import { config } from "../src/config.ts";
 import { zetarisSql } from "../src/data/zetaris.ts";
 
-const host = process.env.CAUSA_DB_HOST || "causa-db:5432";
 const password = process.env.CAUSA_DB_PASSWORD;
 if (!password) throw new Error("CAUSA_DB_PASSWORD is not set in .env");
+const vars: Record<string, string> = {
+  ZETARIS_ERP_SOURCE: config.zetaris.erpSource,
+  ZETARIS_CRM_SOURCE: config.zetaris.crmSource,
+  CAUSA_DB_HOST: process.env.CAUSA_DB_HOST || "causa-db:5432",
+  CAUSA_DB_PASSWORD: password,
+};
 
-const sources = [
-  { name: config.zetaris.erpSource, db: "erp", desc: "Causa ERP - orders, customers, parts" },
-  { name: config.zetaris.crmSource, db: "crm", desc: "Causa CRM - accounts and account events" },
-];
+const file = path.join(import.meta.dirname, "register_zetaris_sources.sql");
+const statements = fs
+  .readFileSync(file, "utf-8")
+  .replace(/^\s*--.*$/gm, "")
+  .split(";")
+  .map((s) => s.trim())
+  .filter(Boolean)
+  .map((s) => s.replace(/\$\{(\w+)\}/g, (_, k: string) => vars[k] ?? `\${${k}}`));
 
-async function run(label: string, sql: string) {
+for (const sql of statements) {
+  const label = sql.split(/\s+/).slice(0, 4).join(" ");
   try {
     await zetarisSql(sql);
     console.log(`${label}: done`);
   } catch (err) {
-    const msg = (err as Error).message.replaceAll(password!, "***");
+    const msg = (err as Error).message.replaceAll(password, "***");
     if (/already exist|already registered|duplicate/i.test(msg)) console.log(`${label}: already registered`);
     else throw new Error(`${label}: ${msg.slice(0, 300)}`);
   }
-}
-
-for (const s of sources) {
-  await run(
-    `source ${s.name}`,
-    `CREATE DATASOURCE ${s.name} DESCRIBE BY "${s.desc}" OPTIONS (jdbcdriver "org.postgresql.Driver", jdbcurl "jdbc:postgresql://${host}/${s.db}", username "causa", password "${password}")`,
-  );
-  await run(`tables of ${s.name}`, `REGISTER DATASOURCE TABLES FROM ${s.name}`);
 }
 
 const check = await zetarisSql(`SELECT count(*) FROM ${config.zetaris.crmSource}.account_events e JOIN ${config.zetaris.erpSource}.customer c ON c.c_custkey = e.c_custkey`);
