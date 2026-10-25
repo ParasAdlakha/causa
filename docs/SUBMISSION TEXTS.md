@@ -12,7 +12,7 @@ Copy-ready answers for the HackOS form, the demo script, the channel post and th
 
 **Track:** Track 2: The Agent That Can Explain Why
 
-**Team:** Paras Adlakha
+**Team:** Paras Adlakha, Harshita Adlakha
 
 **Repository:** https://github.com/ParasAdlakha/causa *(fill in once published)*
 

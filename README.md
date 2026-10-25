@@ -4,7 +4,7 @@
 
 Revenue in Germany fell 15% last quarter. Why? Today an analyst spends a day finding out: pulling orders from the ERP, slicing them by segment, product and customer, then searching the CRM for what happened to those accounts. Causa does that investigation with four AI agents and shows its work. The **Planner** recalls past findings and ranks hypotheses. The **Analyst** tests each one with SQL in **Zetaris**, which federates the ERP and the CRM. The **Critic** recomputes every figure and sends the Analyst back for more evidence. The **Reporter** writes an answer where every number links to the query behind it. The reasoning runs on **NVIDIA Nemotron** through **Meterless Nightshift**, and **Meterless H-MEM** remembers what explained earlier changes, so the next investigation starts there.
 
-Built by **Paras Adlakha** for the **Open Agent Hackathon 2026**, Track 2: *The Agent That Can Explain Why*.
+Built by **Paras Adlakha** and **Harshita Adlakha** for the **Open Agent Hackathon 2026**, Track 2: *The Agent That Can Explain Why*.
 
 **🎬 [Narrated 2-minute demo](docs/video/Causa-demo-2min.mp4)** · [3-minute pitch video](docs/video/Causa-pitch-3min.mp4) · [Captioned walkthrough (silent)](docs/video/Causa-demo.mp4) · **📑 [Slides (PDF)](docs/slides/Causa-slides.pdf)** · [PowerPoint](docs/slides/Causa-slides.pptx) · [Project page](https://parasadlakha.github.io/causa/) · [Market brief](docs/market-brief.html)
 
@@ -384,7 +384,8 @@ docs/                 Slides, videos, screenshots, project page, market brief, s
 
 | | Background | Role on Causa |
 |---|---|---|
-| **Paras Adlakha** | Aerospace, electronics, systems engineering | Everything: agents, data layer, sponsor integrations, demo |
+| **Paras Adlakha** | Aerospace, electronics, systems engineering | Agents, Zetaris data layer, Meterless and Nemotron integrations |
+| **Harshita Adlakha** | System dynamics, socio-technical systems | Research, problem framing, evaluation design and the demo story |
 
 Built with Claude Code.
 
