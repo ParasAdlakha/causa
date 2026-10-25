@@ -40,8 +40,9 @@ export async function chat(messages: ChatMessage[], opts: { deep?: boolean; temp
   const started = Date.now();
   const res = await fetch(`${config.meterless.baseUrl}/chat/completions`, {
     method: "POST",
-    // meterless-ttfb raises Nightshift's first-token limit: hosted Nemotron can queue on the free tier.
-    headers: { ...headers(), "meterless-scope": "user", "meterless-ttfb": "120000", "Content-Type": "application/json" },
+    // meterless-ttfb-ms raises Nightshift's cloud first-token limit (default 45s): Nemotron
+    // reasons before its first token, and long drafts have taken over two minutes.
+    headers: { ...headers(), "meterless-scope": "user", "meterless-ttfb-ms": "240000", "Content-Type": "application/json" },
     body: JSON.stringify({
       model: opts.deep ? config.meterless.modelDeep : config.meterless.model,
       messages,
@@ -52,7 +53,7 @@ export async function chat(messages: ChatMessage[], opts: { deep?: boolean; temp
   if (res.status === 401 || res.status === 403) throw new Error(`Nightshift rejected the runtime token (HTTP ${res.status})`);
   if (!res.ok) throw new Error(`Nightshift returned HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`);
   const body = (await res.json()) as { model?: string; choices?: { message?: { content?: string } }[] };
-  const content = body.choices?.[0]?.message?.content ?? "";
+  const content = stripReasoning(body.choices?.[0]?.message?.content ?? "");
   if (!content.trim()) throw new Error("Nightshift returned an empty answer");
   return { content, model: body.model ?? res.headers.get("meterless-model") ?? "unknown", ms: Date.now() - started };
 }
@@ -84,6 +85,13 @@ export async function chatJson<T>(
     }
   }
   throw new Error(`${agent} could not get valid JSON from the model`);
+}
+
+// Nemotron reasoning models can return their thinking inline, ending with
+// </think> (the opening tag is sometimes omitted). Only the answer after it counts.
+export function stripReasoning(text: string): string {
+  const end = text.lastIndexOf("</think>");
+  return (end >= 0 ? text.slice(end + "</think>".length) : text).replace(/<think>[\s\S]*$/, "").trim();
 }
 
 export function extractJson(text: string): unknown {

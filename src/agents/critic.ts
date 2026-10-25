@@ -168,7 +168,7 @@ Reply with ONE JSON object only: {"issues":["<concrete problem with a claim, max
 }
 
 // Every value a claim may legitimately quote from its cited queries.
-function figuresFor(queries: EvidenceQuery[], totalDelta: number): number[] {
+export function figuresFor(queries: EvidenceQuery[], totalDelta: number): number[] {
   const out: number[] = [];
   for (const q of queries) {
     if (q.kind === "totals" || q.kind === "baseline") {

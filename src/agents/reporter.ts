@@ -9,7 +9,7 @@ import type { InvestigationMemory } from "../engines/hmem.ts";
 import { chat } from "../llm.ts";
 import type { Trace } from "../trace.ts";
 import { factsText } from "./analyst.ts";
-import { moneyFigures } from "./critic.ts";
+import { figuresFor, moneyFigures } from "./critic.ts";
 import { titleCase, type Context, type Critique, type Draft, type Mode, type Report } from "./shared.ts";
 
 const AGENT = "ReporterAgent";
@@ -88,7 +88,7 @@ Use ONLY the approved claims and query results below. Put the query id in square
 Sections, in order: a one-paragraph direct answer (no heading); "## What drove it"; "## Why: what the CRM says" (the account events behind the drivers); "## Price or volume"; "## Compared with the whole company" (only if there is a company-wide query); "## Ruled out"; "## Confidence and limitations" (state ${(confidence * 100).toFixed(0)}% and why: ${reason}; list the open points); "## Suggested next step". Keep it under 350 words.`;
   const user = `Question: ${ctx.plan.question}\n\nQuery results:\n${factsText(ctx)}\n\nApproved claims:\n${draft.claims.map((c) => `- (${c.kind}, ${c.evidence.join(",")}) ${c.text}`).join("\n")}\n\nOpen points from the critic:\n${last.issues.map((i) => `- ${i}`).join("\n") || "- none"}`;
   const result = await chat([{ role: "system", content: system }, { role: "user", content: user }], { deep: true, temperature: 0.3 });
-  const allowed = draft.claims.flatMap((c) => moneyFigures(c.text));
+  const allowed = reportFigures(ctx, draft);
   const stray = moneyFigures(result.content).filter((f) => !allowed.some((a) => Math.abs(Math.abs(a) - Math.abs(f)) <= Math.max(1e4, 0.02 * Math.abs(a))));
   trace.log({
     agent: AGENT,
@@ -100,6 +100,25 @@ Sections, in order: a one-paragraph direct answer (no heading); "## What drove i
   });
   if (stray.length) throw new Error("the report contained unsupported figures");
   return result.content.trim();
+}
+
+// Figures the report may quote: those in the approved claims, the values of
+// the queries those claims cite, and totals of two or three of them (e.g. the
+// combined loss of the three customers behind a drop).
+function reportFigures(ctx: Context, draft: Draft): number[] {
+  const cited = new Set(draft.claims.flatMap((c) => c.evidence));
+  const queries = ctx.queries.filter((q) => cited.has(q.id));
+  const base = [...new Set([...draft.claims.flatMap((c) => moneyFigures(c.text)), ...figuresFor(queries, ctx.totals?.delta ?? 0)])]
+    .filter((v) => Number.isFinite(v) && v !== 0)
+    .sort((a, b) => Math.abs(b) - Math.abs(a))
+    .slice(0, 60);
+  const sums: number[] = [];
+  for (let i = 0; i < base.length; i++)
+    for (let j = i + 1; j < base.length; j++) {
+      sums.push(base[i] + base[j]);
+      for (let k = j + 1; k < base.length; k++) sums.push(base[i] + base[j] + base[k]);
+    }
+  return [...base, ...sums];
 }
 
 function templateReport(ctx: Context, draft: Draft, last: Critique, confidence: number, reason: string): string {

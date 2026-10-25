@@ -30,7 +30,7 @@ export const config = {
     model: env("METERLESS_MODEL", "meterless/auto"),
     modelDeep: env("METERLESS_MODEL_DEEP", env("METERLESS_MODEL", "meterless/auto")),
     app: "causa",
-    timeoutMs: 180_000,
+    timeoutMs: 300_000,
   },
   paths: {
     logs: path.join(ROOT, "logs"),
