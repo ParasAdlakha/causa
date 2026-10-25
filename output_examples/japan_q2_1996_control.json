@@ -1,6 +1,6 @@
 {
-  "trace_id": "trace-20261025T140203-652999",
-  "log_path": "logs/trace-20261025T140203-652999.jsonl",
+  "trace_id": "trace-20261025T143705-a1b80f",
+  "log_path": "logs/trace-20261025T143705-a1b80f.jsonl",
   "question": "Why did revenue in Japan change in Q2 1996 compared with Q2 1995?",
   "status": "success",
   "mode": "model",
@@ -13,7 +13,7 @@
         {
           "name": "every claim cites a query that ran",
           "passed": true,
-          "detail": "9 claims"
+          "detail": "11 claims"
         },
         {
           "name": "every figure matches its cited query",
@@ -38,7 +38,7 @@
         {
           "name": "driver accounts checked in the CRM",
           "passed": true,
-          "detail": "5 accounts looked up"
+          "detail": "CRM context present"
         },
         {
           "name": "secondary drivers tested for confounding",
@@ -47,14 +47,32 @@
         },
         {
           "name": "a driver was found",
-          "passed": true,
-          "detail": "at least one dimension concentrates the change"
+          "passed": false,
+          "detail": "no dimension concentrates the change; testing customer, return_flag"
         }
       ],
       "issues": [
-        "C7 rules out order priority as an explanation despite Q4 showing 2-HIGH priority driving 69% of Japan's revenue change (-$2.12M, z=-2.7), a statistically significant dominant factor; the conclusion contradicts the data., C8 rules out customer market segment as an explanation despite Q5 showing the BUILDING segment reversing with +$1.00M change and z=3.2, a highly significant deviation from the overall trend; the dismissal ignores key segment-level data., C9 rules out part type as an explanation despite Q6 revealing STANDARD PLATED STEEL at z=-1.6 and other part types contributing -$270.9K (9% of change) with |z| > 1.5; the claim of 'no significant difference' overstates the evidence given near-significant z-scores and meaningful revenue impacts near the 5% threshold."
+        "C9 claims 'Customer market segment does not differ from overall trend' despite Q4 reporting z=3.2 for BUILDING, which signifies a significant divergence (revenue rose +$1.00M while Japan total fell -$3.09M), making the claim factually inconsistent with the cited data.",
+        "C10 states 'Order priority does not differ from overall trend' despite Q5 showing 2-HIGH with z=-2.7 and 69% of the total change; this contradicts the draft's own C6 and the cited query, rendering the assertion overstated and internally inconsistent.",
+        "The summary asserts CRM 'ruling out explicit contract or pricing actions as the mechanism,' but the CRM data only documents routine complaints and renewals; the data correlates events with the period but does not establish or rule out causation, so the claim overstates what the evidence supports."
       ],
-      "requests": [],
+      "requests": [
+        {
+          "kind": "breakdown",
+          "dimension": "customer",
+          "reason": "no tested dimension explains the change yet"
+        },
+        {
+          "kind": "breakdown",
+          "dimension": "return_flag",
+          "reason": "no tested dimension explains the change yet"
+        },
+        {
+          "kind": "breakdown",
+          "dimension": "part_manufacturer",
+          "reason": "To examine if part-level supply or quality changes drive the volume effect and segment contributions, providing an alternative explanation to the customer-segment and order-priority focuses that the draft relies on for C4-C6."
+        }
+      ],
       "mode": "model"
     },
     {
@@ -64,7 +82,7 @@
         {
           "name": "every claim cites a query that ran",
           "passed": true,
-          "detail": "9 claims"
+          "detail": "10 claims"
         },
         {
           "name": "every figure matches its cited query",
@@ -137,7 +155,7 @@
           "15191.000000000000000000"
         ]
       ],
-      "ms": 27419,
+      "ms": 23610,
       "requestedBy": "AnalystAgent"
     },
     {
@@ -164,12 +182,382 @@
           "291192.000000000000000000"
         ]
       ],
-      "ms": 24979,
+      "ms": 17769,
       "requestedBy": "AnalystAgent"
     },
     {
       "id": "Q3",
-      "purpose": "Break the change down by individual customer",
+      "purpose": "Break the change down by customer region",
+      "kind": "breakdown",
+      "dimension": "customer_region",
+      "filters": [
+        {
+          "dimension": "customer_nation",
+          "value": "JAPAN"
+        }
+      ],
+      "sql": "SELECT\n  cr.r_name AS member,\n  SUM(CASE WHEN o.o_orderdate >= '1995-04-01' AND o.o_orderdate < '1995-07-01' THEN l.l_extendedprice * (1 - l.l_discount) ELSE 0 END) AS revenue_a,\n  SUM(CASE WHEN o.o_orderdate >= '1996-04-01' AND o.o_orderdate < '1996-07-01' THEN l.l_extendedprice * (1 - l.l_discount) ELSE 0 END) AS revenue_b,\n  COUNT(DISTINCT CASE WHEN o.o_orderdate >= '1995-04-01' AND o.o_orderdate < '1995-07-01' THEN o.o_orderkey END) AS orders_a,\n  COUNT(DISTINCT CASE WHEN o.o_orderdate >= '1996-04-01' AND o.o_orderdate < '1996-07-01' THEN o.o_orderkey END) AS orders_b,\n  SUM(CASE WHEN o.o_orderdate >= '1995-04-01' AND o.o_orderdate < '1995-07-01' THEN (l.l_extendedprice * (1 - l.l_discount)) * (l.l_extendedprice * (1 - l.l_discount)) ELSE 0 END) AS sumsq_a,\n  SUM(CASE WHEN o.o_orderdate >= '1996-04-01' AND o.o_orderdate < '1996-07-01' THEN (l.l_extendedprice * (1 - l.l_discount)) * (l.l_extendedprice * (1 - l.l_discount)) ELSE 0 END) AS sumsq_b\nFROM causa_erp.lineitem l\n  JOIN causa_erp.orders o ON l.l_orderkey = o.o_orderkey\n  JOIN causa_erp.customer c ON o.o_custkey = c.c_custkey\n  JOIN causa_erp.nation cn ON c.c_nationkey = cn.n_nationkey\n  JOIN causa_erp.region cr ON cn.n_regionkey = cr.r_regionkey\nWHERE ((o.o_orderdate >= '1995-04-01' AND o.o_orderdate < '1995-07-01') OR (o.o_orderdate >= '1996-04-01' AND o.o_orderdate < '1996-07-01'))\n  AND cn.n_name = 'JAPAN'\nGROUP BY cr.r_name\nLIMIT 5000",
+      "columns": [
+        "member",
+        "revenue_a",
+        "revenue_b",
+        "orders_a",
+        "orders_b",
+        "sumsq_a",
+        "sumsq_b"
+      ],
+      "rows": [
+        [
+          "ASIA",
+          "19170622.993100",
+          "16080843.662400",
+          "205",
+          "167",
+          "670025607436.975221",
+          "584943136291.433630"
+        ]
+      ],
+      "ms": 37921,
+      "requestedBy": "AnalystAgent",
+      "compared": 1
+    },
+    {
+      "id": "Q4",
+      "purpose": "Break the change down by customer market segment",
+      "kind": "breakdown",
+      "dimension": "customer_segment",
+      "filters": [
+        {
+          "dimension": "customer_nation",
+          "value": "JAPAN"
+        }
+      ],
+      "sql": "SELECT\n  c.c_mktsegment AS member,\n  SUM(CASE WHEN o.o_orderdate >= '1995-04-01' AND o.o_orderdate < '1995-07-01' THEN l.l_extendedprice * (1 - l.l_discount) ELSE 0 END) AS revenue_a,\n  SUM(CASE WHEN o.o_orderdate >= '1996-04-01' AND o.o_orderdate < '1996-07-01' THEN l.l_extendedprice * (1 - l.l_discount) ELSE 0 END) AS revenue_b,\n  COUNT(DISTINCT CASE WHEN o.o_orderdate >= '1995-04-01' AND o.o_orderdate < '1995-07-01' THEN o.o_orderkey END) AS orders_a,\n  COUNT(DISTINCT CASE WHEN o.o_orderdate >= '1996-04-01' AND o.o_orderdate < '1996-07-01' THEN o.o_orderkey END) AS orders_b,\n  SUM(CASE WHEN o.o_orderdate >= '1995-04-01' AND o.o_orderdate < '1995-07-01' THEN (l.l_extendedprice * (1 - l.l_discount)) * (l.l_extendedprice * (1 - l.l_discount)) ELSE 0 END) AS sumsq_a,\n  SUM(CASE WHEN o.o_orderdate >= '1996-04-01' AND o.o_orderdate < '1996-07-01' THEN (l.l_extendedprice * (1 - l.l_discount)) * (l.l_extendedprice * (1 - l.l_discount)) ELSE 0 END) AS sumsq_b\nFROM causa_erp.lineitem l\n  JOIN causa_erp.orders o ON l.l_orderkey = o.o_orderkey\n  JOIN causa_erp.customer c ON o.o_custkey = c.c_custkey\n  JOIN causa_erp.nation cn ON c.c_nationkey = cn.n_nationkey\nWHERE ((o.o_orderdate >= '1995-04-01' AND o.o_orderdate < '1995-07-01') OR (o.o_orderdate >= '1996-04-01' AND o.o_orderdate < '1996-07-01'))\n  AND cn.n_name = 'JAPAN'\nGROUP BY c.c_mktsegment\nLIMIT 5000",
+      "columns": [
+        "member",
+        "revenue_a",
+        "revenue_b",
+        "orders_a",
+        "orders_b",
+        "sumsq_a",
+        "sumsq_b"
+      ],
+      "rows": [
+        [
+          "AUTOMOBILE",
+          "6458716.952500",
+          "4171784.187100",
+          "73",
+          "39",
+          "225093476391.998517",
+          "152192563780.642213"
+        ],
+        [
+          "HOUSEHOLD",
+          "3270674.398400",
+          "1667628.789500",
+          "28",
+          "18",
+          "117898245433.083563",
+          "63555447423.749202"
+        ],
+        [
+          "MACHINERY",
+          "3511920.089400",
+          "2466699.681500",
+          "36",
+          "30",
+          "125383484261.205641",
+          "85629447604.544198"
+        ],
+        [
+          "BUILDING",
+          "1784428.025400",
+          "2785060.974500",
+          "22",
+          "28",
+          "60747907596.283680",
+          "102720699685.776439"
+        ],
+        [
+          "FURNITURE",
+          "4144883.527400",
+          "4989670.029800",
+          "46",
+          "52",
+          "140902493754.403820",
+          "180844977796.721578"
+        ]
+      ],
+      "ms": 26055,
+      "requestedBy": "AnalystAgent",
+      "compared": 5
+    },
+    {
+      "id": "Q5",
+      "purpose": "Break the change down by order priority",
+      "kind": "breakdown",
+      "dimension": "order_priority",
+      "filters": [
+        {
+          "dimension": "customer_nation",
+          "value": "JAPAN"
+        }
+      ],
+      "sql": "SELECT\n  o.o_orderpriority AS member,\n  SUM(CASE WHEN o.o_orderdate >= '1995-04-01' AND o.o_orderdate < '1995-07-01' THEN l.l_extendedprice * (1 - l.l_discount) ELSE 0 END) AS revenue_a,\n  SUM(CASE WHEN o.o_orderdate >= '1996-04-01' AND o.o_orderdate < '1996-07-01' THEN l.l_extendedprice * (1 - l.l_discount) ELSE 0 END) AS revenue_b,\n  COUNT(DISTINCT CASE WHEN o.o_orderdate >= '1995-04-01' AND o.o_orderdate < '1995-07-01' THEN o.o_orderkey END) AS orders_a,\n  COUNT(DISTINCT CASE WHEN o.o_orderdate >= '1996-04-01' AND o.o_orderdate < '1996-07-01' THEN o.o_orderkey END) AS orders_b,\n  SUM(CASE WHEN o.o_orderdate >= '1995-04-01' AND o.o_orderdate < '1995-07-01' THEN (l.l_extendedprice * (1 - l.l_discount)) * (l.l_extendedprice * (1 - l.l_discount)) ELSE 0 END) AS sumsq_a,\n  SUM(CASE WHEN o.o_orderdate >= '1996-04-01' AND o.o_orderdate < '1996-07-01' THEN (l.l_extendedprice * (1 - l.l_discount)) * (l.l_extendedprice * (1 - l.l_discount)) ELSE 0 END) AS sumsq_b\nFROM causa_erp.lineitem l\n  JOIN causa_erp.orders o ON l.l_orderkey = o.o_orderkey\n  JOIN causa_erp.customer c ON o.o_custkey = c.c_custkey\n  JOIN causa_erp.nation cn ON c.c_nationkey = cn.n_nationkey\nWHERE ((o.o_orderdate >= '1995-04-01' AND o.o_orderdate < '1995-07-01') OR (o.o_orderdate >= '1996-04-01' AND o.o_orderdate < '1996-07-01'))\n  AND cn.n_name = 'JAPAN'\nGROUP BY o.o_orderpriority\nLIMIT 5000",
+      "columns": [
+        "member",
+        "revenue_a",
+        "revenue_b",
+        "orders_a",
+        "orders_b",
+        "sumsq_a",
+        "sumsq_b"
+      ],
+      "rows": [
+        [
+          "2-HIGH",
+          "4691888.860300",
+          "2573815.682900",
+          "45",
+          "25",
+          "165134350314.644737",
+          "91411347737.185364"
+        ],
+        [
+          "5-LOW",
+          "3504962.097500",
+          "4204274.092300",
+          "35",
+          "41",
+          "124064975249.484929",
+          "154214455825.750507"
+        ],
+        [
+          "3-MEDIUM",
+          "3339204.878200",
+          "2644448.640800",
+          "33",
+          "30",
+          "115453088168.554429",
+          "95218853136.517471"
+        ],
+        [
+          "1-URGENT",
+          "3798153.890700",
+          "3218170.432700",
+          "49",
+          "34",
+          "131841834438.458088",
+          "121939010232.950244"
+        ],
+        [
+          "4-NOT SPECIFIED",
+          "3836413.266400",
+          "3440134.813700",
+          "43",
+          "37",
+          "133531359265.833038",
+          "122159469359.030044"
+        ]
+      ],
+      "ms": 18708,
+      "requestedBy": "AnalystAgent",
+      "compared": 5
+    },
+    {
+      "id": "Q6",
+      "purpose": "Break the change down by shipping mode",
+      "kind": "breakdown",
+      "dimension": "ship_mode",
+      "filters": [
+        {
+          "dimension": "customer_nation",
+          "value": "JAPAN"
+        }
+      ],
+      "sql": "SELECT\n  l.l_shipmode AS member,\n  SUM(CASE WHEN o.o_orderdate >= '1995-04-01' AND o.o_orderdate < '1995-07-01' THEN l.l_extendedprice * (1 - l.l_discount) ELSE 0 END) AS revenue_a,\n  SUM(CASE WHEN o.o_orderdate >= '1996-04-01' AND o.o_orderdate < '1996-07-01' THEN l.l_extendedprice * (1 - l.l_discount) ELSE 0 END) AS revenue_b,\n  COUNT(DISTINCT CASE WHEN o.o_orderdate >= '1995-04-01' AND o.o_orderdate < '1995-07-01' THEN o.o_orderkey END) AS orders_a,\n  COUNT(DISTINCT CASE WHEN o.o_orderdate >= '1996-04-01' AND o.o_orderdate < '1996-07-01' THEN o.o_orderkey END) AS orders_b,\n  SUM(CASE WHEN o.o_orderdate >= '1995-04-01' AND o.o_orderdate < '1995-07-01' THEN (l.l_extendedprice * (1 - l.l_discount)) * (l.l_extendedprice * (1 - l.l_discount)) ELSE 0 END) AS sumsq_a,\n  SUM(CASE WHEN o.o_orderdate >= '1996-04-01' AND o.o_orderdate < '1996-07-01' THEN (l.l_extendedprice * (1 - l.l_discount)) * (l.l_extendedprice * (1 - l.l_discount)) ELSE 0 END) AS sumsq_b\nFROM causa_erp.lineitem l\n  JOIN causa_erp.orders o ON l.l_orderkey = o.o_orderkey\n  JOIN causa_erp.customer c ON o.o_custkey = c.c_custkey\n  JOIN causa_erp.nation cn ON c.c_nationkey = cn.n_nationkey\nWHERE ((o.o_orderdate >= '1995-04-01' AND o.o_orderdate < '1995-07-01') OR (o.o_orderdate >= '1996-04-01' AND o.o_orderdate < '1996-07-01'))\n  AND cn.n_name = 'JAPAN'\nGROUP BY l.l_shipmode\nLIMIT 5000",
+      "columns": [
+        "member",
+        "revenue_a",
+        "revenue_b",
+        "orders_a",
+        "orders_b",
+        "sumsq_a",
+        "sumsq_b"
+      ],
+      "rows": [
+        [
+          "REG AIR",
+          "2933258.910100",
+          "1961368.674400",
+          "89",
+          "59",
+          "103405999360.610533",
+          "68968262258.424721"
+        ],
+        [
+          "FOB",
+          "2887076.386300",
+          "2337984.105300",
+          "84",
+          "68",
+          "102027322357.647315",
+          "86372793474.331254"
+        ],
+        [
+          "TRUCK",
+          "2496986.748700",
+          "2013602.366900",
+          "82",
+          "66",
+          "82328474787.955046",
+          "66432851417.616976"
+        ],
+        [
+          "SHIP",
+          "2876806.950600",
+          "2505546.411200",
+          "75",
+          "59",
+          "104616730714.757900",
+          "97246464246.221906"
+        ],
+        [
+          "AIR",
+          "2885251.729600",
+          "2596511.418300",
+          "89",
+          "75",
+          "96248908451.663991",
+          "92780947756.753883"
+        ],
+        [
+          "MAIL",
+          "2268719.963900",
+          "2021762.538600",
+          "70",
+          "57",
+          "80120313189.514949",
+          "75601943179.455878"
+        ],
+        [
+          "RAIL",
+          "2822522.303900",
+          "2644068.147700",
+          "79",
+          "71",
+          "101277858574.825487",
+          "97539873958.629012"
+        ]
+      ],
+      "ms": 21224,
+      "requestedBy": "AnalystAgent",
+      "compared": 7
+    },
+    {
+      "id": "Q7",
+      "purpose": "CRM account events for Japan around the change (CRM joined to ERP customers)",
+      "kind": "crm",
+      "filters": [
+        {
+          "dimension": "customer_nation",
+          "value": "JAPAN"
+        }
+      ],
+      "sql": "SELECT c.c_name AS customer, e.event_date, e.event_type, e.summary, e.account_manager\nFROM causa_crm.account_events e\n  JOIN causa_erp.customer c ON e.c_custkey = c.c_custkey\n  JOIN causa_erp.nation cn ON c.c_nationkey = cn.n_nationkey\nWHERE e.event_date >= '1995-04-01'\n  AND e.event_date < '1996-07-01'\n  AND e.event_type NOT IN ('meeting', 'support')\n  AND cn.n_name = 'JAPAN'\nORDER BY CASE e.event_type WHEN 'contract_ended' THEN 0 WHEN 'new_contract' THEN 0 WHEN 'price_renegotiated' THEN 1 WHEN 'tender' THEN 2 ELSE 3 END, e.event_date\nLIMIT 25",
+      "columns": [
+        "customer",
+        "event_date",
+        "event_type",
+        "summary",
+        "account_manager"
+      ],
+      "rows": [
+        [
+          "Customer#000001089",
+          "1995-04-02",
+          "complaint",
+          "Late delivery on two order lines.",
+          "Luca Rossi"
+        ],
+        [
+          "Customer#000000936",
+          "1995-04-18",
+          "complaint",
+          "Invoice dispute, resolved.",
+          "Sam Carter"
+        ],
+        [
+          "Customer#000001415",
+          "1995-06-10",
+          "complaint",
+          "Invoice dispute, resolved.",
+          "Diego Santos"
+        ],
+        [
+          "Customer#000000134",
+          "1995-06-26",
+          "complaint",
+          "Invoice dispute, resolved.",
+          "Luca Rossi"
+        ],
+        [
+          "Customer#000001075",
+          "1995-07-17",
+          "complaint",
+          "Invoice dispute, resolved.",
+          "Tom Becker"
+        ],
+        [
+          "Customer#000000815",
+          "1995-07-23",
+          "complaint",
+          "Invoice dispute, resolved.",
+          "Anna Weber"
+        ],
+        [
+          "Customer#000000781",
+          "1995-08-03",
+          "complaint",
+          "Late delivery on two order lines.",
+          "Mei Lin"
+        ],
+        [
+          "Customer#000000930",
+          "1995-08-24",
+          "complaint",
+          "Late delivery on two order lines.",
+          "Priya Shah"
+        ],
+        [
+          "Customer#000001247",
+          "1995-12-23",
+          "renewal",
+          "Annual supply agreement renewed on unchanged terms.",
+          "Priya Shah"
+        ],
+        [
+          "Customer#000000014",
+          "1996-02-09",
+          "renewal",
+          "Annual supply agreement renewed on unchanged terms.",
+          "Tom Becker"
+        ],
+        [
+          "Customer#000000134",
+          "1996-05-18",
+          "complaint",
+          "Late delivery on two order lines.",
+          "Luca Rossi"
+        ]
+      ],
+      "ms": 8991,
+      "requestedBy": "AnalystAgent"
+    },
+    {
+      "id": "Q8",
+      "purpose": "Break the change down by individual customer (asked by Critic: no tested dimension explains the change yet)",
       "kind": "breakdown",
       "dimension": "customer",
       "filters": [
@@ -298,22 +686,22 @@
           "7264141301.313116"
         ]
       ],
-      "ms": 46188,
+      "ms": 19585,
       "requestedBy": "AnalystAgent",
       "compared": 86
     },
     {
-      "id": "Q4",
-      "purpose": "Break the change down by order priority",
+      "id": "Q9",
+      "purpose": "Break the change down by return status (R = returned) (asked by Critic: no tested dimension explains the change yet)",
       "kind": "breakdown",
-      "dimension": "order_priority",
+      "dimension": "return_flag",
       "filters": [
         {
           "dimension": "customer_nation",
           "value": "JAPAN"
         }
       ],
-      "sql": "SELECT\n  o.o_orderpriority AS member,\n  SUM(CASE WHEN o.o_orderdate >= '1995-04-01' AND o.o_orderdate < '1995-07-01' THEN l.l_extendedprice * (1 - l.l_discount) ELSE 0 END) AS revenue_a,\n  SUM(CASE WHEN o.o_orderdate >= '1996-04-01' AND o.o_orderdate < '1996-07-01' THEN l.l_extendedprice * (1 - l.l_discount) ELSE 0 END) AS revenue_b,\n  COUNT(DISTINCT CASE WHEN o.o_orderdate >= '1995-04-01' AND o.o_orderdate < '1995-07-01' THEN o.o_orderkey END) AS orders_a,\n  COUNT(DISTINCT CASE WHEN o.o_orderdate >= '1996-04-01' AND o.o_orderdate < '1996-07-01' THEN o.o_orderkey END) AS orders_b,\n  SUM(CASE WHEN o.o_orderdate >= '1995-04-01' AND o.o_orderdate < '1995-07-01' THEN (l.l_extendedprice * (1 - l.l_discount)) * (l.l_extendedprice * (1 - l.l_discount)) ELSE 0 END) AS sumsq_a,\n  SUM(CASE WHEN o.o_orderdate >= '1996-04-01' AND o.o_orderdate < '1996-07-01' THEN (l.l_extendedprice * (1 - l.l_discount)) * (l.l_extendedprice * (1 - l.l_discount)) ELSE 0 END) AS sumsq_b\nFROM causa_erp.lineitem l\n  JOIN causa_erp.orders o ON l.l_orderkey = o.o_orderkey\n  JOIN causa_erp.customer c ON o.o_custkey = c.c_custkey\n  JOIN causa_erp.nation cn ON c.c_nationkey = cn.n_nationkey\nWHERE ((o.o_orderdate >= '1995-04-01' AND o.o_orderdate < '1995-07-01') OR (o.o_orderdate >= '1996-04-01' AND o.o_orderdate < '1996-07-01'))\n  AND cn.n_name = 'JAPAN'\nGROUP BY o.o_orderpriority\nLIMIT 5000",
+      "sql": "SELECT\n  l.l_returnflag AS member,\n  SUM(CASE WHEN o.o_orderdate >= '1995-04-01' AND o.o_orderdate < '1995-07-01' THEN l.l_extendedprice * (1 - l.l_discount) ELSE 0 END) AS revenue_a,\n  SUM(CASE WHEN o.o_orderdate >= '1996-04-01' AND o.o_orderdate < '1996-07-01' THEN l.l_extendedprice * (1 - l.l_discount) ELSE 0 END) AS revenue_b,\n  COUNT(DISTINCT CASE WHEN o.o_orderdate >= '1995-04-01' AND o.o_orderdate < '1995-07-01' THEN o.o_orderkey END) AS orders_a,\n  COUNT(DISTINCT CASE WHEN o.o_orderdate >= '1996-04-01' AND o.o_orderdate < '1996-07-01' THEN o.o_orderkey END) AS orders_b,\n  SUM(CASE WHEN o.o_orderdate >= '1995-04-01' AND o.o_orderdate < '1995-07-01' THEN (l.l_extendedprice * (1 - l.l_discount)) * (l.l_extendedprice * (1 - l.l_discount)) ELSE 0 END) AS sumsq_a,\n  SUM(CASE WHEN o.o_orderdate >= '1996-04-01' AND o.o_orderdate < '1996-07-01' THEN (l.l_extendedprice * (1 - l.l_discount)) * (l.l_extendedprice * (1 - l.l_discount)) ELSE 0 END) AS sumsq_b\nFROM causa_erp.lineitem l\n  JOIN causa_erp.orders o ON l.l_orderkey = o.o_orderkey\n  JOIN causa_erp.customer c ON o.o_custkey = c.c_custkey\n  JOIN causa_erp.nation cn ON c.c_nationkey = cn.n_nationkey\nWHERE ((o.o_orderdate >= '1995-04-01' AND o.o_orderdate < '1995-07-01') OR (o.o_orderdate >= '1996-04-01' AND o.o_orderdate < '1996-07-01'))\n  AND cn.n_name = 'JAPAN'\nGROUP BY l.l_returnflag\nLIMIT 5000",
       "columns": [
         "member",
         "revenue_a",
@@ -325,67 +713,40 @@
       ],
       "rows": [
         [
-          "2-HIGH",
-          "4691888.860300",
-          "2573815.682900",
-          "45",
-          "25",
-          "165134350314.644737",
-          "91411347737.185364"
+          "N",
+          "17830509.167100",
+          "15190312.019500",
+          "202",
+          "166",
+          "621290339437.129180",
+          "556544736164.764122"
         ],
         [
-          "5-LOW",
-          "3504962.097500",
-          "4204274.092300",
-          "35",
-          "41",
-          "124064975249.484929",
-          "154214455825.750507"
-        ],
-        [
-          "3-MEDIUM",
-          "3339204.878200",
-          "2644448.640800",
-          "33",
-          "30",
-          "115453088168.554429",
-          "95218853136.517471"
-        ],
-        [
-          "1-URGENT",
-          "3798153.890700",
-          "3218170.432700",
-          "49",
-          "34",
-          "131841834438.458088",
-          "121939010232.950244"
-        ],
-        [
-          "4-NOT SPECIFIED",
-          "3836413.266400",
-          "3440134.813700",
+          "R",
+          "1340113.826000",
+          "890531.642900",
           "43",
-          "37",
-          "133531359265.833038",
-          "122159469359.030044"
+          "35",
+          "48735267999.846041",
+          "28398400126.669508"
         ]
       ],
-      "ms": 34344,
+      "ms": 15577,
       "requestedBy": "AnalystAgent",
-      "compared": 5
+      "compared": 2
     },
     {
-      "id": "Q5",
-      "purpose": "Break the change down by customer market segment",
+      "id": "Q10",
+      "purpose": "Break the change down by part manufacturer (asked by Critic: To examine if part-level supply or quality changes drive the volume effect and segment contributions, providing an alternative explanation to the customer-segment and order-priority focuses that the draft relies on for C4-C6.)",
       "kind": "breakdown",
-      "dimension": "customer_segment",
+      "dimension": "part_manufacturer",
       "filters": [
         {
           "dimension": "customer_nation",
           "value": "JAPAN"
         }
       ],
-      "sql": "SELECT\n  c.c_mktsegment AS member,\n  SUM(CASE WHEN o.o_orderdate >= '1995-04-01' AND o.o_orderdate < '1995-07-01' THEN l.l_extendedprice * (1 - l.l_discount) ELSE 0 END) AS revenue_a,\n  SUM(CASE WHEN o.o_orderdate >= '1996-04-01' AND o.o_orderdate < '1996-07-01' THEN l.l_extendedprice * (1 - l.l_discount) ELSE 0 END) AS revenue_b,\n  COUNT(DISTINCT CASE WHEN o.o_orderdate >= '1995-04-01' AND o.o_orderdate < '1995-07-01' THEN o.o_orderkey END) AS orders_a,\n  COUNT(DISTINCT CASE WHEN o.o_orderdate >= '1996-04-01' AND o.o_orderdate < '1996-07-01' THEN o.o_orderkey END) AS orders_b,\n  SUM(CASE WHEN o.o_orderdate >= '1995-04-01' AND o.o_orderdate < '1995-07-01' THEN (l.l_extendedprice * (1 - l.l_discount)) * (l.l_extendedprice * (1 - l.l_discount)) ELSE 0 END) AS sumsq_a,\n  SUM(CASE WHEN o.o_orderdate >= '1996-04-01' AND o.o_orderdate < '1996-07-01' THEN (l.l_extendedprice * (1 - l.l_discount)) * (l.l_extendedprice * (1 - l.l_discount)) ELSE 0 END) AS sumsq_b\nFROM causa_erp.lineitem l\n  JOIN causa_erp.orders o ON l.l_orderkey = o.o_orderkey\n  JOIN causa_erp.customer c ON o.o_custkey = c.c_custkey\n  JOIN causa_erp.nation cn ON c.c_nationkey = cn.n_nationkey\nWHERE ((o.o_orderdate >= '1995-04-01' AND o.o_orderdate < '1995-07-01') OR (o.o_orderdate >= '1996-04-01' AND o.o_orderdate < '1996-07-01'))\n  AND cn.n_name = 'JAPAN'\nGROUP BY c.c_mktsegment\nLIMIT 5000",
+      "sql": "SELECT\n  p.p_mfgr AS member,\n  SUM(CASE WHEN o.o_orderdate >= '1995-04-01' AND o.o_orderdate < '1995-07-01' THEN l.l_extendedprice * (1 - l.l_discount) ELSE 0 END) AS revenue_a,\n  SUM(CASE WHEN o.o_orderdate >= '1996-04-01' AND o.o_orderdate < '1996-07-01' THEN l.l_extendedprice * (1 - l.l_discount) ELSE 0 END) AS revenue_b,\n  COUNT(DISTINCT CASE WHEN o.o_orderdate >= '1995-04-01' AND o.o_orderdate < '1995-07-01' THEN o.o_orderkey END) AS orders_a,\n  COUNT(DISTINCT CASE WHEN o.o_orderdate >= '1996-04-01' AND o.o_orderdate < '1996-07-01' THEN o.o_orderkey END) AS orders_b,\n  SUM(CASE WHEN o.o_orderdate >= '1995-04-01' AND o.o_orderdate < '1995-07-01' THEN (l.l_extendedprice * (1 - l.l_discount)) * (l.l_extendedprice * (1 - l.l_discount)) ELSE 0 END) AS sumsq_a,\n  SUM(CASE WHEN o.o_orderdate >= '1996-04-01' AND o.o_orderdate < '1996-07-01' THEN (l.l_extendedprice * (1 - l.l_discount)) * (l.l_extendedprice * (1 - l.l_discount)) ELSE 0 END) AS sumsq_b\nFROM causa_erp.lineitem l\n  JOIN causa_erp.orders o ON l.l_orderkey = o.o_orderkey\n  JOIN causa_erp.customer c ON o.o_custkey = c.c_custkey\n  JOIN causa_erp.nation cn ON c.c_nationkey = cn.n_nationkey\n  JOIN causa_erp.part p ON l.l_partkey = p.p_partkey\nWHERE ((o.o_orderdate >= '1995-04-01' AND o.o_orderdate < '1995-07-01') OR (o.o_orderdate >= '1996-04-01' AND o.o_orderdate < '1996-07-01'))\n  AND cn.n_name = 'JAPAN'\nGROUP BY p.p_mfgr\nLIMIT 5000",
       "columns": [
         "member",
         "revenue_a",
@@ -397,223 +758,66 @@
       ],
       "rows": [
         [
-          "AUTOMOBILE",
-          "6458716.952500",
-          "4171784.187100",
-          "73",
-          "39",
-          "225093476391.998517",
-          "152192563780.642213"
+          "Manufacturer#1",
+          "4221187.879900",
+          "3146330.061800",
+          "102",
+          "83",
+          "155674782612.573119",
+          "110627464556.981685"
         ],
         [
-          "HOUSEHOLD",
-          "3270674.398400",
-          "1667628.789500",
-          "28",
-          "18",
-          "117898245433.083563",
-          "63555447423.749202"
+          "Manufacturer#5",
+          "4209982.497100",
+          "3180962.920400",
+          "106",
+          "80",
+          "150735009473.053244",
+          "111771960640.778041"
         ],
         [
-          "MACHINERY",
-          "3511920.089400",
-          "2466699.681500",
-          "36",
-          "30",
-          "125383484261.205641",
-          "85629447604.544198"
+          "Manufacturer#2",
+          "3950085.272000",
+          "3237998.435100",
+          "110",
+          "89",
+          "131426785081.053904",
+          "116623304404.004732"
         ],
         [
-          "BUILDING",
-          "1784428.025400",
-          "2785060.974500",
-          "22",
-          "28",
-          "60747907596.283680",
-          "102720699685.776439"
+          "Manufacturer#4",
+          "2982213.829700",
+          "2549311.508800",
+          "91",
+          "71",
+          "104375041039.680639",
+          "97347887881.991459"
         ],
         [
-          "FURNITURE",
-          "4144883.527400",
-          "4989670.029800",
-          "46",
-          "52",
-          "140902493754.403820",
-          "180844977796.721578"
+          "Manufacturer#3",
+          "3807153.514400",
+          "3966240.736300",
+          "113",
+          "102",
+          "127813989230.614315",
+          "148572518807.677713"
         ]
       ],
-      "ms": 40668,
+      "ms": 26462,
       "requestedBy": "AnalystAgent",
       "compared": 5
-    },
-    {
-      "id": "Q6",
-      "purpose": "Break the change down by part type",
-      "kind": "breakdown",
-      "dimension": "part_type",
-      "filters": [
-        {
-          "dimension": "customer_nation",
-          "value": "JAPAN"
-        }
-      ],
-      "sql": "SELECT\n  p.p_type AS member,\n  SUM(CASE WHEN o.o_orderdate >= '1995-04-01' AND o.o_orderdate < '1995-07-01' THEN l.l_extendedprice * (1 - l.l_discount) ELSE 0 END) AS revenue_a,\n  SUM(CASE WHEN o.o_orderdate >= '1996-04-01' AND o.o_orderdate < '1996-07-01' THEN l.l_extendedprice * (1 - l.l_discount) ELSE 0 END) AS revenue_b,\n  COUNT(DISTINCT CASE WHEN o.o_orderdate >= '1995-04-01' AND o.o_orderdate < '1995-07-01' THEN o.o_orderkey END) AS orders_a,\n  COUNT(DISTINCT CASE WHEN o.o_orderdate >= '1996-04-01' AND o.o_orderdate < '1996-07-01' THEN o.o_orderkey END) AS orders_b,\n  SUM(CASE WHEN o.o_orderdate >= '1995-04-01' AND o.o_orderdate < '1995-07-01' THEN (l.l_extendedprice * (1 - l.l_discount)) * (l.l_extendedprice * (1 - l.l_discount)) ELSE 0 END) AS sumsq_a,\n  SUM(CASE WHEN o.o_orderdate >= '1996-04-01' AND o.o_orderdate < '1996-07-01' THEN (l.l_extendedprice * (1 - l.l_discount)) * (l.l_extendedprice * (1 - l.l_discount)) ELSE 0 END) AS sumsq_b\nFROM causa_erp.lineitem l\n  JOIN causa_erp.orders o ON l.l_orderkey = o.o_orderkey\n  JOIN causa_erp.customer c ON o.o_custkey = c.c_custkey\n  JOIN causa_erp.nation cn ON c.c_nationkey = cn.n_nationkey\n  JOIN causa_erp.part p ON l.l_partkey = p.p_partkey\nWHERE ((o.o_orderdate >= '1995-04-01' AND o.o_orderdate < '1995-07-01') OR (o.o_orderdate >= '1996-04-01' AND o.o_orderdate < '1996-07-01'))\n  AND cn.n_name = 'JAPAN'\nGROUP BY p.p_type\nLIMIT 5000",
-      "columns": [
-        "member",
-        "revenue_a",
-        "revenue_b",
-        "orders_a",
-        "orders_b",
-        "sumsq_a",
-        "sumsq_b"
-      ],
-      "rows": [
-        [
-          "STANDARD PLATED STEEL",
-          "375963.202300",
-          "105079.800000",
-          "9",
-          "8",
-          "16364670194.616545",
-          "1821786019.044040"
-        ],
-        [
-          "MEDIUM ANODIZED BRASS",
-          "417619.383000",
-          "156512.106300",
-          "10",
-          "6",
-          "18400915167.302424",
-          "5791547872.449720"
-        ],
-        [
-          "MEDIUM POLISHED NICKEL",
-          "402677.097500",
-          "170719.502400",
-          "11",
-          "6",
-          "15704668088.838631",
-          "6816774214.644459"
-        ],
-        [
-          "LARGE POLISHED BRASS",
-          "366217.570100",
-          "137151.717700",
-          "12",
-          "6",
-          "14692461623.745926",
-          "3472212393.253319"
-        ],
-        [
-          "SMALL PLATED NICKEL",
-          "150174.303000",
-          "377152.847900",
-          "5",
-          "10",
-          "5275497979.116388",
-          "16323663594.427333"
-        ],
-        [
-          "STANDARD ANODIZED COPPER",
-          "255527.333900",
-          "42956.681400",
-          "8",
-          "3",
-          "10647251105.536081",
-          "1268902941.419916"
-        ],
-        [
-          "STANDARD PLATED COPPER",
-          "439037.462000",
-          "229214.008000",
-          "13",
-          "8",
-          "17575514531.487161",
-          "7167166710.200887"
-        ],
-        [
-          "PROMO PLATED COPPER",
-          "235016.401300",
-          "52588.878000",
-          "6",
-          "3",
-          "9707631402.687793",
-          "2100576054.994816"
-        ],
-        [
-          "SMALL POLISHED TIN",
-          "200987.788800",
-          "18654.048000",
-          "7",
-          "2",
-          "7239087053.806141",
-          "210586035.962880"
-        ],
-        [
-          "ECONOMY PLATED TIN",
-          "205112.517600",
-          "26030.356800",
-          "5",
-          "3",
-          "8373062091.595500",
-          "327430005.280990"
-        ],
-        [
-          "SMALL ANODIZED TIN",
-          "337957.576700",
-          "160213.619400",
-          "11",
-          "7",
-          "12809036380.825647",
-          "5969520756.464466"
-        ],
-        [
-          "SMALL POLISHED BRASS",
-          "206211.329700",
-          "35451.108000",
-          "8",
-          "2",
-          "8892277483.922237",
-          "646302149.965584"
-        ]
-      ],
-      "ms": 70759,
-      "requestedBy": "AnalystAgent",
-      "compared": 142
-    },
-    {
-      "id": "Q7",
-      "purpose": "CRM account events for Customer#000000764, Customer#000000905, Customer#000000577, Customer#000001362, Customer#000000629 around the change (CRM joined to ERP customers)",
-      "kind": "crm",
-      "filters": [
-        {
-          "dimension": "customer_nation",
-          "value": "JAPAN"
-        }
-      ],
-      "sql": "SELECT c.c_name AS customer, e.event_date, e.event_type, e.summary, e.account_manager\nFROM causa_crm.account_events e\n  JOIN causa_erp.customer c ON e.c_custkey = c.c_custkey\n  JOIN causa_erp.nation cn ON c.c_nationkey = cn.n_nationkey\nWHERE e.event_date >= '1995-04-01'\n  AND e.event_date < '1996-07-01'\n  AND e.event_type NOT IN ('meeting', 'support')\n  AND cn.n_name = 'JAPAN'\n  AND c.c_name IN ('Customer#000000764', 'Customer#000000905', 'Customer#000000577', 'Customer#000001362', 'Customer#000000629')\nORDER BY CASE e.event_type WHEN 'contract_ended' THEN 0 WHEN 'new_contract' THEN 0 WHEN 'price_renegotiated' THEN 1 WHEN 'tender' THEN 2 ELSE 3 END, e.event_date\nLIMIT 25",
-      "columns": [
-        "customer",
-        "event_date",
-        "event_type",
-        "summary",
-        "account_manager"
-      ],
-      "rows": [],
-      "ms": 24670,
-      "requestedBy": "AnalystAgent"
     }
   ],
   "memory": {
     "recalled": [
+      "mem-7",
+      "mem-8",
+      "mem-9",
       "mem-5",
-      "mem-2",
-      "mem-3",
-      "mem-6",
-      "mem-1"
+      "mem-2"
     ],
     "stored": [
-      "mem-7"
+      "mem-10"
     ]
   },
   "collaboration": {
@@ -630,7 +834,7 @@
     "nvidia/nemotron-3.5-lightning-30b-a3b",
     "nvidia/nemotron-3-ultra-550b-a55b"
   ],
-  "duration_ms": 648468,
+  "duration_ms": 528048,
   "plan": {
     "question": "Why did revenue in Japan change in Q2 1996 compared with Q2 1995?",
     "focus": [
@@ -652,27 +856,57 @@
     },
     "hypotheses": [
       {
-        "dimension": "customer",
-        "why": "mem-3, mem-6, mem-1 consistently identified individual customer as revenue driver in Germany Q3 comparisons; testing per memory pattern"
-      },
-      {
-        "dimension": "order_priority",
-        "why": "mem-5 showed order priority explained France Q1 revenue change; applying to Japan Q2 comparison"
+        "dimension": "customer_region",
+        "why": "Per mem-7, ASIA region demand shifts are tested as primary driver for the -16.1% variance."
       },
       {
         "dimension": "customer_segment",
-        "why": "segment-level shifts often accompany nation-level revenue changes in TPC-H wholesale data"
+        "why": "Segment mix (AUTOMOBILE, BUILDING, FURNITURE, HOUSEHOLD, MACHINERY) may have changed between Q2 1995 and Q2 1996."
       },
       {
-        "dimension": "part_type",
-        "why": "recurring dimension in Germany investigations (mem-6, mem-1); testing per memory pattern despite frequent exclusion"
+        "dimension": "order_priority",
+        "why": "Order priority distribution (1-High to 4-Not Specified) differed year-over-year, affecting revenue timing."
+      },
+      {
+        "dimension": "ship_mode",
+        "why": "Shipping mode mix changed, potentially impacting extended price or discount application."
       }
     ],
     "recalled": [
       {
+        "id": "mem-7",
+        "content": "Investigation of revenue for Japan, Q2 1995 vs Q2 1996: revenue moved -16.1% (-$3.09M). Explained by no single dimension. Not the cause: none.",
+        "relevance": 0.311929252550029,
+        "source": "causa:trace-20261025T140203-652999",
+        "tags": [
+          "focus:japan",
+          "revenue-variance"
+        ]
+      },
+      {
+        "id": "mem-8",
+        "content": "Investigation of revenue for United States, 1996 vs 1997: revenue moved +6.5% ($8.58M). Explained by no single dimension. Not the cause: none.",
+        "relevance": 0.2195018411708695,
+        "source": "causa:trace-20261025T141252-782dc7",
+        "tags": [
+          "focus:united states",
+          "revenue-variance"
+        ]
+      },
+      {
+        "id": "mem-9",
+        "content": "Investigation of revenue for France, Q1 1996 vs Q1 1997: revenue moved +2.5% ($432.7K). Explained by no single dimension. Not the cause: none.",
+        "relevance": 0.21403578274609752,
+        "source": "causa:trace-20261025T142500-d9e22e",
+        "tags": [
+          "focus:france",
+          "revenue-variance"
+        ]
+      },
+      {
         "id": "mem-5",
         "content": "Investigation of revenue for France, Q1 1996 vs Q1 1997: revenue moved +2.5% ($432.7K). Explained by individual customer (Customer#000000305), order priority (4-Not Specified). Not the cause: customer market segment, individual customer, supplier nation, individual customer.",
-        "relevance": 0.18166068158706328,
+        "relevance": 0.18165704600173133,
         "source": "causa:trace-20261025T133805-2f4499",
         "tags": [
           "focus:france",
@@ -687,52 +921,11 @@
       {
         "id": "mem-2",
         "content": "Investigation of revenue for Germany, Q3 1995 vs Q3 1996: revenue moved -15.1% (-$3.73M). Explained by no single dimension. Not the cause: part brand.",
-        "relevance": 0.1781820497567855,
+        "relevance": 0.17817842213627472,
         "source": "causa:trace-20261025T125415-bfee76",
         "tags": [
           "focus:germany",
           "weak:part_brand",
-          "revenue-variance"
-        ]
-      },
-      {
-        "id": "mem-3",
-        "content": "Investigation of revenue for Germany, Q3 1995 vs Q3 1996: revenue moved -15.1% (-$3.73M). Explained by individual customer (Customer#000001502). Not the cause: part brand, supplier nation.",
-        "relevance": 0.16450087475031205,
-        "source": "causa:trace-20261025T130554-d8c1d6",
-        "tags": [
-          "focus:germany",
-          "driver:customer",
-          "weak:part_brand",
-          "weak:supplier_nation",
-          "revenue-variance"
-        ]
-      },
-      {
-        "id": "mem-6",
-        "content": "Investigation of revenue for Germany, Q3 1995 vs Q3 1996: revenue moved -15.1% (-$3.73M). Explained by individual customer (Customer#000001502). Not the cause: order priority, part type.",
-        "relevance": 0.16407135714408932,
-        "source": "causa:trace-20261025T135149-98ca10",
-        "tags": [
-          "focus:germany",
-          "driver:customer",
-          "weak:order_priority",
-          "weak:part_type",
-          "revenue-variance"
-        ]
-      },
-      {
-        "id": "mem-1",
-        "content": "Investigation of revenue for Germany, Q3 1995 vs Q3 1996: revenue moved -15.1% (-$3.73M). Explained by individual customer (Automobile Segment). Not the cause: order priority, part type, customer region, part manufacturer.",
-        "relevance": 0.16283439959894705,
-        "source": "causa:trace-20261025T111013-f1be28",
-        "tags": [
-          "focus:germany",
-          "driver:customer",
-          "weak:order_priority",
-          "weak:part_type",
-          "weak:customer_region",
-          "weak:part_manufacturer",
           "revenue-variance"
         ]
       }
@@ -754,12 +947,12 @@
     "priceEffect": 242428.81015754156
   },
   "draft": {
-    "summary": "Japan's revenue declined from $19.17M to $16.08M in Q2 1996 vs Q2 1995, a $3.09M (-16.1%) drop driven mainly by a volume decrease of -$3.33M, partially offset by a price rise of $242.4K. The decrease is chiefly attributable to the 2-HIGH order priority fall (-$2.12M, 69%, z=-2.7), the top customer #000000764 drop (-$977.6K, 32%, z=-3.9), and the BUILDING market segment's surprising +$1.00M gain (z=3.2), with no CRM events recorded for the affected accounts.",
+    "summary": "Japan's revenue fell from $19.17M [Q1] to $16.08M [Q1] in Q2 1996 vs Q2 1995, a 16.1% [Q1] decline driven primarily by a volume drop of -$3.33M [Q1] partially offset by a modest price increase of $242.4K [Q1]; the decline outpaced the company‑wide -3.5% [Q2] by roughly the gap between -16.1% [Q1] and -3.5% [Q2].",
     "claims": [
       {
         "id": "C1",
         "kind": "overall",
-        "text": "Japan's revenue declined from $19.17M to $16.08M in Q2 1996 vs Q2 1995, a $3.09M (-16.1%) drop driven mainly by a volume decrease of -$3.33M, partially offset by a price rise of $242.4K.",
+        "text": "Japan revenue dropped $3.09M [Q1] from $19.17M [Q1] to $16.08M [Q1]",
         "evidence": [
           "Q1"
         ]
@@ -767,7 +960,7 @@
       {
         "id": "C2",
         "kind": "price_volume",
-        "text": "Units sold fell from 18,387 to 15,191, contributing -$3.33M to the revenue change, while revenue per unit rose from $1,042.62 to $1,058.58, adding $242.4K; the two effects pull in opposite directions, with volume driving the majority of the decline.",
+        "text": "Units fell from 18,387 [Q1] to 15,191 [Q1]; revenue per unit rose from $1042.62 [Q1] to $1058.58 [Q1]; volume effect -$3.33M [Q1] and price effect +$242.4K [Q1] pulled in opposite directions, making the change mainly volume-driven.",
         "evidence": [
           "Q1"
         ]
@@ -775,7 +968,7 @@
       {
         "id": "C3",
         "kind": "baseline",
-        "text": "Company-wide revenue declined -3.5% over the same periods, so Japan underperformed the company by approximately 12.6 percentage points.",
+        "text": "Company‑wide revenue fell -3.5% [Q2] (-$11.16M [Q2]), so Japan underperformed the company by roughly the gap between -16.1% [Q1] and -3.5% [Q2].",
         "evidence": [
           "Q2"
         ]
@@ -783,15 +976,16 @@
       {
         "id": "C4",
         "kind": "driver",
-        "text": "Customer#000000764 was the single largest driver, with revenue dropping from $1.11M to $130.9K (-$977.6K, 32% of total change, z=-3.9).",
+        "text": "Individual customer Customer#000000764 [Q8] fell from $1.11M [Q8] to $130.9K [Q8], a change of -$977.6K [Q8] representing 32% [Q8] of the total change and 3.9 standard deviations [Q8] from the overall trend, making it the single largest driver.",
         "evidence": [
-          "Q3"
-        ]
+          "Q8"
+        ],
+        "member": "Customer#000000764"
       },
       {
         "id": "C5",
         "kind": "drilldown",
-        "text": "By order priority, 2-HIGH fell from $4.69M to $2.57M (-$2.12M, 69% of total change, z=-2.7), making it the dominant contributor to Japan's revenue decline.",
+        "text": "By customer market segment [Q4], AUTOMOBILE fell -$2.29M [Q4] (74% [Q4], z=-2.0 [Q4]), HOUSEHOLD fell -$1.60M [Q4] (52% [Q4], z=-2.5 [Q4]), MACHINERY fell -$1.05M [Q4] (34% [Q4], z=-1.0 [Q4]), while BUILDING rose $1.00M [Q4] (-32% [Q4], z=3.2 [Q4]) and FURNITURE rose $844.8K [Q4] (-27% [Q4], z=2.7 [Q4]); segment contributions were sizeable but none alone accounted for the full Japan decline.",
         "evidence": [
           "Q4"
         ]
@@ -799,43 +993,51 @@
       {
         "id": "C6",
         "kind": "drilldown",
-        "text": "By customer market segment, the BUILDING segment reversed the trend with +$1.00M (z=3.2), while AUTOMOBILE (-$2.29M, z=-2.0) and HOUSEHOLD (-$1.60M, z=-2.5) were significant contributors, indicating segment-level variation explains part of the change.",
+        "text": "By order priority [Q5], 2-HIGH fell -$2.12M [Q5] (69% [Q5], z=-2.7 [Q5]), 5-LOW rose $699.3K [Q5] (-23% [Q5], z=2.4 [Q5]), 3-MEDIUM fell -$694.8K [Q5] (22% [Q5], z=-0.3 [Q5]), 1-URGENT fell -$580.0K [Q5] (19% [Q5], z=0.1 [Q5]), and 4-NOT SPECIFIED fell -$396.3K [Q5] (13% [Q5], z=0.4 [Q5]); the 2-HIGH category was the largest contributor but its significance was moderate.",
         "evidence": [
           "Q5"
         ]
       },
       {
         "id": "C7",
-        "kind": "drilldown",
-        "text": "By part type, STANDARD PLATED STEEL declined -$270.9K (z=-1.6, 9% of change), and several other part types contributed changes with |z| > 1.5, showing meaningful part-level variation despite no single type dominating.",
+        "kind": "ruled_out",
+        "text": "Customer region [Q3] shows Asia accounted for 100% [Q3] of the total change but with z=0.0 [Q3], indicating no significant divergence from the overall trend; thus region does not explain the Japan change.",
         "evidence": [
-          "Q6"
+          "Q3"
         ]
       },
       {
         "id": "C8",
+        "kind": "ruled_out",
+        "text": "Return status [Q9] shows N (non‑returned) fell -$2.64M [Q9] (85% [Q9], z=0.2 [Q9]) and R (returned) fell -$449.6K [Q9] (15% [Q9], z=-0.8 [Q9]); neither moved significantly relative to the overall trend.",
+        "evidence": [
+          "Q9"
+        ]
+      },
+      {
+        "id": "C9",
         "kind": "context",
-        "text": "The CRM records no notable account events (contracts, tenders, pricing changes, complaints) for the key Japanese accounts around Q2 1995–1996.",
+        "text": "CRM [Q7] recorded 11 events [Q7] around the period, including 8 complaint events [Q7] from 1995‑04‑02 through 1995‑08‑24 all concerning late delivery or invoice disputes, and 2 renewal events [Q7] on unchanged terms; the data documents routine issues but does not establish a causal mechanism for the revenue change.",
         "evidence": [
           "Q7"
         ]
       },
       {
-        "id": "C9",
+        "id": "C10",
         "kind": "ruled_out",
-        "text": "No CRM account events were detected for the key Japanese customers, ruling out explicit contract or pricing actions as the mechanism for the revenue change.",
+        "text": "Part manufacturer [Q10] changes were small; Manufacturer#3 rose $159.1K [Q10] (-5% [Q10], z=1.5 [Q10]) and other manufacturers had negative changes with z‑scores below 2, so manufacturer composition does not explain the Japan revenue shift.",
         "evidence": [
-          "Q7"
+          "Q10"
         ]
       }
     ],
     "mode": "model"
   },
   "report": {
-    "markdown": "Japan's revenue declined 16.1% ($3.09M) from $19.17M to $16.08M in Q2 1996 vs Q2 1995, driven primarily by a volume loss of $3.33M partially offset by a $242.4K price increase, with the largest single driver being Customer#000000764 losing $977.6K (32% of total change) and the 2‑HIGH order priority segment falling $2.12M (69% of total change) [Q1][Q3][Q4].\n\n## What drove it\nCustomer#000000764 dropped from $1.11M to $130.9K (‑$977.6K, 32%, z=‑3.9) [Q3]. Customer#000000905 went from $614.6K to $0 (‑$614.6K, 20%) [Q3]. Customer#000001415 fell from $659.7K to $123.8K (‑$535.9K, 17%) [Q3]. Customer#000000577 went from $489.5K to $0 (‑$489.5K, 16%) [Q3]. Customer#000001362 went from $426.0K to $0 (‑$426.0K, 14%) [Q3]. By order priority, 2‑HIGH fell $2.12M (69%, z=‑2.7) [Q4]. By segment, AUTOMOBILE fell $2.29M (74%, z=‑2.0) and HOUSEHOLD fell $1.60M (52%, z=‑2.5), while BUILDING grew $1.00M (‑32%, z=3.2) [Q5].\n\n## Why: what the CRM says\nCRM shows no notable account events (contracts, tenders, pricing changes, complaints) for the key Japanese accounts around Q2 1995–1996 [Q7].\n\n## Price or volume\nVolume‑driven: units fell from 18,387 to 15,191 (‑3,196 units), contributing ‑$3.33M; revenue per unit rose from $1,042.62 to $1,058.58, adding $242.4K [Q1].\n\n## Compared with the whole company\nCompany‑wide revenue fell 3.5% (‑$11.16M) vs Japan's 16.1% (‑$3.09M), a 12.6pp underperformance [Q2].\n\n## Ruled out\nNo CRM account events detected for key Japanese customers, ruling out explicit contract or pricing actions as the mechanism [Q7].\n\n## Confidence and limitations\n95% confidence. Concentrated driver found (Customer#000000764 = 32% of change); main driver drilled into (2‑HIGH priority = 69%, AUTOMOBILE = 74%); compared with company‑wide trend (12.6pp gap); all critic checks passed. Open points: none.\n\n## Suggested next step\nInvestigate operational causes behind the 2‑HIGH priority order volume collapse and AUTOMOBILE/HOUSEHOLD segment declines, as CRM shows no commercial events explaining the drops.",
-    "headline": "Japan's revenue declined from $19.17M to $16.08M in Q2 1996 vs Q2 1995, a $3.09M (-16.1%) drop driven mainly by a volume decrease of -$3.33M, partially offset by a price rise of $242.4K. The decrease is chiefly attributable to the 2-HIGH order priority fall (-$2.12M, 69%, z=-2.7), the top customer #000000764 drop (-$977.6K, 32%, z=-3.9), and the BUILDING market segment's surprising +$1.00M gain (z=3.2), with no CRM events recorded for the affected accounts.",
-    "confidence": 0.95,
-    "confidenceReason": "a concentrated driver was found; the main driver was drilled into; compared with the company-wide trend; all critic checks passed",
+    "markdown": "Japan revenue fell $3.09M [Q1] from $19.17M [Q1] to $16.08M [Q1] (-16.1% [Q1]) in Q2 1996 vs Q2 1995. The decline was volume-driven: units dropped from 18,387 [Q1] to 15,191 [Q1] (volume effect -$3.33M [Q1]) while revenue per unit rose from $1,042.62 [Q1] to $1,058.58 [Q1] (price effect +$242.4K [Q1]). The single largest driver was Customer#000000764 [Q8], which fell $977.6K [Q8] (32% [Q8] of total change, z=-3.9 [Q8]). Company-wide revenue fell only -3.5% [Q2] (-$11.16M [Q2]), so Japan underperformed by ~12.6 percentage points. CRM shows routine complaints and renewals but no causal mechanism.\n\n## What drove it\nThe most significant driver was Customer#000000764 [Q8] (-$977.6K [Q8], 32% [Q8], z=-3.9 [Q8]). At segment level, AUTOMOBILE fell -$2.29M [Q4] (74% [Q4], z=-2.0 [Q4]) and HOUSEHOLD fell -$1.60M [Q4] (52% [Q4], z=-2.5 [Q4]), while BUILDING (+$1.00M [Q4], -32% [Q4], z=3.2 [Q4]) and FURNITURE (+$844.8K [Q4], -27% [Q4], z=2.7 [Q4]) partially offset. By order priority, 2-HIGH fell -$2.12M [Q5] (69% [Q5], z=-2.7 [Q5]).\n\n## Why: what the CRM says\nCRM [Q7] recorded 11 events [Q7] around the period: 8 complaints [Q7] (late delivery or invoice disputes) from 1995-04-02 through 1995-08-24, and 2 renewals [Q7] on unchanged terms (1995-12-23, 1996-02-09). The data documents routine issues but does not establish a causal mechanism for the revenue change.\n\n## Price or volume\nVolume-driven: units fell 3,196 [Q1] (18,387 [Q1] → 15,191 [Q1]), volume effect -$3.33M [Q1]; revenue per unit rose $15.96 [Q1] ($1,042.62 [Q1] → $1,058.58 [Q1]), price effect +$242.4K [Q1].\n\n## Compared with the whole company\nCompany-wide revenue fell -3.5% [Q2] (-$11.16M [Q2]) vs Japan -16.1% [Q1] (-$3.09M [Q1]); Japan underperformed the company trend by roughly 12.6 percentage points.\n\n## Ruled out\nCustomer region [Q3]: Asia 100% [Q3] of change, z=0.0 [Q3] — no divergence. Return status [Q9]: non-returned 85% [Q9] (z=0.2 [Q9]), returned 15% [Q9] (z=-0.8 [Q9]) — neither significant. Part manufacturer [Q10]: all z-scores below 2 — composition does not explain the shift.\n\n## Confidence and limitations\n70% confidence. A concentrated driver was found (Customer#000000764); no contract, tender, or pricing event in CRM explains it, so cause is not established; the main driver was drilled into; compared with company-wide trend; all critic checks passed. Open points: none.\n\n## Suggested next step\nInvestigate Customer#000000764 specifically: review account history, contract terms, competitive actions, or operational issues in Q2 1996.",
+    "headline": "Japan's revenue fell from $19.17M [Q1] to $16.08M [Q1] in Q2 1996 vs Q2 1995, a 16.1% [Q1] decline driven primarily by a volume drop of -$3.33M [Q1] partially offset by a modest price increase of $242.4K [Q1]; the decline outpaced the company‑wide -3.5% [Q2] by roughly the gap between -16.1% [Q1] and -3.5% [Q2].",
+    "confidence": 0.7,
+    "confidenceReason": "a concentrated driver was found; no contract, tender or pricing event in the CRM explains it, so the cause is not established; the main driver was drilled into; compared with the company-wide trend; all critic checks passed",
     "mode": "model"
   }
 }

@@ -1,27 +1,27 @@
 # Why did revenue in Japan change in Q2 1996 compared with Q2 1995?
 
-Japan's revenue declined 16.1% ($3.09M) from $19.17M to $16.08M in Q2 1996 vs Q2 1995, driven primarily by a volume loss of $3.33M partially offset by a $242.4K price increase, with the largest single driver being Customer#000000764 losing $977.6K (32% of total change) and the 2‑HIGH order priority segment falling $2.12M (69% of total change) [Q1][Q3][Q4].
+Japan revenue fell $3.09M [Q1] from $19.17M [Q1] to $16.08M [Q1] (-16.1% [Q1]) in Q2 1996 vs Q2 1995. The decline was volume-driven: units dropped from 18,387 [Q1] to 15,191 [Q1] (volume effect -$3.33M [Q1]) while revenue per unit rose from $1,042.62 [Q1] to $1,058.58 [Q1] (price effect +$242.4K [Q1]). The single largest driver was Customer#000000764 [Q8], which fell $977.6K [Q8] (32% [Q8] of total change, z=-3.9 [Q8]). Company-wide revenue fell only -3.5% [Q2] (-$11.16M [Q2]), so Japan underperformed by ~12.6 percentage points. CRM shows routine complaints and renewals but no causal mechanism.
 
 ## What drove it
-Customer#000000764 dropped from $1.11M to $130.9K (‑$977.6K, 32%, z=‑3.9) [Q3]. Customer#000000905 went from $614.6K to $0 (‑$614.6K, 20%) [Q3]. Customer#000001415 fell from $659.7K to $123.8K (‑$535.9K, 17%) [Q3]. Customer#000000577 went from $489.5K to $0 (‑$489.5K, 16%) [Q3]. Customer#000001362 went from $426.0K to $0 (‑$426.0K, 14%) [Q3]. By order priority, 2‑HIGH fell $2.12M (69%, z=‑2.7) [Q4]. By segment, AUTOMOBILE fell $2.29M (74%, z=‑2.0) and HOUSEHOLD fell $1.60M (52%, z=‑2.5), while BUILDING grew $1.00M (‑32%, z=3.2) [Q5].
+The most significant driver was Customer#000000764 [Q8] (-$977.6K [Q8], 32% [Q8], z=-3.9 [Q8]). At segment level, AUTOMOBILE fell -$2.29M [Q4] (74% [Q4], z=-2.0 [Q4]) and HOUSEHOLD fell -$1.60M [Q4] (52% [Q4], z=-2.5 [Q4]), while BUILDING (+$1.00M [Q4], -32% [Q4], z=3.2 [Q4]) and FURNITURE (+$844.8K [Q4], -27% [Q4], z=2.7 [Q4]) partially offset. By order priority, 2-HIGH fell -$2.12M [Q5] (69% [Q5], z=-2.7 [Q5]).
 
 ## Why: what the CRM says
-CRM shows no notable account events (contracts, tenders, pricing changes, complaints) for the key Japanese accounts around Q2 1995–1996 [Q7].
+CRM [Q7] recorded 11 events [Q7] around the period: 8 complaints [Q7] (late delivery or invoice disputes) from 1995-04-02 through 1995-08-24, and 2 renewals [Q7] on unchanged terms (1995-12-23, 1996-02-09). The data documents routine issues but does not establish a causal mechanism for the revenue change.
 
 ## Price or volume
-Volume‑driven: units fell from 18,387 to 15,191 (‑3,196 units), contributing ‑$3.33M; revenue per unit rose from $1,042.62 to $1,058.58, adding $242.4K [Q1].
+Volume-driven: units fell 3,196 [Q1] (18,387 [Q1] → 15,191 [Q1]), volume effect -$3.33M [Q1]; revenue per unit rose $15.96 [Q1] ($1,042.62 [Q1] → $1,058.58 [Q1]), price effect +$242.4K [Q1].
 
 ## Compared with the whole company
-Company‑wide revenue fell 3.5% (‑$11.16M) vs Japan's 16.1% (‑$3.09M), a 12.6pp underperformance [Q2].
+Company-wide revenue fell -3.5% [Q2] (-$11.16M [Q2]) vs Japan -16.1% [Q1] (-$3.09M [Q1]); Japan underperformed the company trend by roughly 12.6 percentage points.
 
 ## Ruled out
-No CRM account events detected for key Japanese customers, ruling out explicit contract or pricing actions as the mechanism [Q7].
+Customer region [Q3]: Asia 100% [Q3] of change, z=0.0 [Q3] — no divergence. Return status [Q9]: non-returned 85% [Q9] (z=0.2 [Q9]), returned 15% [Q9] (z=-0.8 [Q9]) — neither significant. Part manufacturer [Q10]: all z-scores below 2 — composition does not explain the shift.
 
 ## Confidence and limitations
-95% confidence. Concentrated driver found (Customer#000000764 = 32% of change); main driver drilled into (2‑HIGH priority = 69%, AUTOMOBILE = 74%); compared with company‑wide trend (12.6pp gap); all critic checks passed. Open points: none.
+70% confidence. A concentrated driver was found (Customer#000000764); no contract, tender, or pricing event in CRM explains it, so cause is not established; the main driver was drilled into; compared with company-wide trend; all critic checks passed. Open points: none.
 
 ## Suggested next step
-Investigate operational causes behind the 2‑HIGH priority order volume collapse and AUTOMOBILE/HOUSEHOLD segment declines, as CRM shows no commercial events explaining the drops.
+Investigate Customer#000000764 specifically: review account history, contract terms, competitive actions, or operational issues in Q2 1996.
 
 ---
-trace: logs/trace-20261025T140203-652999.jsonl | 7 queries on zetaris | models: nvidia/nemotron-3.5-lightning-30b-a3b, nvidia/nemotron-3-ultra-550b-a55b | 648 s
+trace: logs/trace-20261025T143705-a1b80f.jsonl | 10 queries on zetaris | models: nvidia/nemotron-3.5-lightning-30b-a3b, nvidia/nemotron-3-ultra-550b-a55b | 528 s
