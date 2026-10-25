@@ -1,0 +1,24 @@
+{
+  "name": "causa",
+  "version": "0.1.0",
+  "description": "Causa: a multi-agent revenue variance investigator. Asks why a number moved, tests each hypothesis with SQL in Zetaris, and answers with cited evidence.",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "start": "tsx src/server.ts",
+    "investigate": "tsx src/cli.ts",
+    "status": "tsx src/cli.ts --status",
+    "test": "tsx --test test/*.test.ts",
+    "conformance": "node scripts/conformance.mjs",
+    "zetaris:register": "tsx scripts/register-zetaris.ts",
+    "sample:export": "tsx scripts/export-sample.ts",
+    "examples": "tsx scripts/run-examples.ts"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0"
+  }
+}

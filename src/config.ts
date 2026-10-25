@@ -1,0 +1,53 @@
+// Settings, read once from the environment. A local .env is loaded if present;
+// real deployments set the variables directly.
+
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+
+const envFile = path.join(ROOT, ".env");
+if (fs.existsSync(envFile)) process.loadEnvFile(envFile);
+
+const env = (name: string, fallback = ""): string => (process.env[name] ?? fallback).trim();
+
+export const config = {
+  sampleMode: env("SAMPLE_MODE", "false").toLowerCase() === "true",
+  port: Number(env("PORT", "8790")),
+  zetaris: {
+    restUrl: env("ZETARIS_REST_URL", "http://localhost:8888/api/v1.0").replace(/\/+$/, ""),
+    orgId: env("ZETARIS_ORG_ID", "1"),
+    apiKey: env("ZETARIS_API_KEY"),
+    erpSource: env("ZETARIS_ERP_SOURCE", "causa_erp"),
+    crmSource: env("ZETARIS_CRM_SOURCE", "causa_crm"),
+    timeoutMs: 90_000,
+  },
+  meterless: {
+    baseUrl: normaliseBaseUrl(env("METERLESS_BASE_URL", "http://127.0.0.1:8088/v1")),
+    token: env("METERLESS_RUNTIME_TOKEN"),
+    model: env("METERLESS_MODEL", "meterless/auto"),
+    modelDeep: env("METERLESS_MODEL_DEEP", env("METERLESS_MODEL", "meterless/auto")),
+    app: "causa",
+    timeoutMs: 180_000,
+  },
+  paths: {
+    logs: path.join(ROOT, "logs"),
+    memory: path.join(ROOT, ".memory"),
+    seed: path.join(ROOT, "data", "seed", "causa_seed.json.gz"),
+  },
+  limits: {
+    maxRevisions: 2,
+    maxQueries: 14,
+    maxLlmRetries: 1,
+  },
+};
+
+// Per the Meterless provider contract: accept a pasted URL with or without a
+// scheme, /v1, /v1/chat/completions, /v1/models or /healthz, and normalise to <host>/v1.
+export function normaliseBaseUrl(raw: string): string {
+  let url = raw.trim();
+  if (!/^https?:\/\//i.test(url)) url = `http://${url}`;
+  const u = new URL(url);
+  return `${u.protocol}//${u.host}/v1`;
+}
