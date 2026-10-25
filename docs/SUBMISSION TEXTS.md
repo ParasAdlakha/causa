@@ -102,31 +102,101 @@ The 3-minute pitch adds the cover, problem, agent-loop, results and closing slid
 
 ---
 
-## LinkedIn post
+## LinkedIn post (Harshita, team voice)
 
-> Why did revenue drop? That question costs finance teams a day every month. Someone pulls the ERP orders, slices them a dozen ways, then hunts through the CRM for what happened to those accounts.
->
-> For the Open Agent Hackathon 2026 I built **Causa**, four AI agents that run that investigation and show their work:
->
-> 🧭 A **Planner** recalls past findings and ranks hypotheses.
-> 🔎 An **Analyst** tests each one with SQL in **Zetaris**, joining the ERP and CRM in a single federated query.
-> ⚖️ A **Critic** recomputes every number from its query and sends the Analyst back for more evidence until the draft holds up.
-> 📝 A **Reporter** writes an answer where every figure links to the SQL behind it, and remembers what explained the change (Meterless **H-MEM**), so the next investigation starts there.
->
-> Everything runs on **NVIDIA Nemotron** through **Meterless Nightshift**, and every step is logged with the model that handled it.
->
-> Asked why German revenue fell 15% in Q3 1996, Causa traced it to three automotive accounts. The CRM showed they lost a tender to a cheaper competitor on 28 June.
->
-> What I learned: the critic loop is the product. A fluent answer is easy. An answer where every number survives a recount is what makes it usable.
->
-> Code and demo: *(links)*
->
-> #OpenAgentHackathon #AIAgents #Zetaris #Meterless #NVIDIA #Nemotron
+Images, in order: `docs/img/linkedin-cover.png`, `docs/img/linkedin-loop.png`, `docs/img/linkedin-product.png`. Or attach `docs/video/Causa-demo-2min.mp4` as a native video.
 
----
+> "Why did revenue drop last quarter?" Every finance team gets asked this, and answering it usually takes a day: pull the orders, slice them a dozen ways, then dig through the CRM to find out what actually happened to those customers.
+>
+> This week our team took part in the Open Agent Hackathon 2026 by GenAI Works, and built Causa: you ask why a number moved, and AI agents investigate it and give you an answer you can check.
+>
+> Four agents work on every question:
+> → a Planner decides what to test, starting with whatever explained earlier changes
+> → an Analyst tests each idea with real SQL across two systems: the ERP (what moved) and the CRM (why)
+> → a Critic recomputes every number and sends the Analyst back for more evidence until the draft holds up
+> → a Reporter writes the answer, with every figure linked to the query behind it and a confidence score
+>
+> Asked why German revenue fell 15% in Q3 1996, Causa traced it to three automotive customers. The CRM showed they had lost a supply tender to a cheaper competitor on 28 June. On a control question where nothing was planted, it reported the drop but said the cause was not established, instead of inventing one.
+>
+> My background in system dynamics and socio-technical systems shaped the part I care about most: an explanation is only useful if you can trace it back. Causa doesn't stop at "what changed"; it keeps asking why, and shows its working.
+>
+> Built on Zetaris for the data, Meterless H-MEM for memory and Meterless Nightshift with NVIDIA Nemotron for the reasoning.
+>
+> Thank you to GenAI Works for organising, and to Zetaris, Meterless, NVIDIA and Space XAI with Cursor for the technology, workshops and support.
+>
+> ▶️ Watch the agents work (replay of real runs): https://harshitaadlakha.github.io/causa/app/
+> 💻 Code: https://github.com/HarshitaAdlakha/causa
+>
+> #AIAgents #MultiAgent #Hackathon #FinancialAnalysis #Zetaris #Meterless #NVIDIA #Nemotron #WomenInTech #BuildInPublic
 
-## X posts
+## Event post (LinkedIn, team voice)
 
-1. Built Causa for #OpenAgentHackathon: ask "why did revenue drop?" and 4 agents investigate in @Zetaris (ERP + CRM, federated), a critic recomputes every number, and the answer cites the SQL behind each claim. Runs on NVIDIA Nemotron via Meterless Nightshift. *(link)*
-2. The critic is the product. Causa's Critic agent re-derives every figure from its cited query and sends the Analyst back for more evidence until it holds. Fluent is easy; checkable is useful. *(demo link)*
-3. Causa remembers what explained past changes (Meterless H-MEM), so the next investigation tests that first, and 👍/👎 on an answer adjusts that memory. *(link)*
+Images to attach, in order: `linkedin-cover.png`, `linkedin-loop.png`, `linkedin-product.png`.
+
+Post from Harshita's account. It mentions only the team, no individual names.
+
+> Can an AI agent explain *why* a number moved, and prove it?
+>
+> From 22 to 27 October, our team took part in the Open Agent Hackathon 2026, organised by GenAI Works: 144 hours, online, building AI agents that reason across data, keep context, and turn that into a useful outcome.
+>
+> 🗓️ Sponsor workshops beforehand: DATA with Zetaris, POWER, and BUILD with Meterless and Cursor · participant onboarding on 21 October · 144 hours of building · submissions closed on 27 October
+>
+> 🏆 Up to $20,000 in prizes ($13,000 cash, $7,000 in kind) across three challenge tracks and a wildcard, plus an NVIDIA DGX Spark for the best use of Nemotron.
+>
+> 🛠️ We entered Track 2, "The Agent That Can Explain Why", with Causa.
+>
+> When revenue moves, the answer sits in two places: the ERP shows what changed, the CRM shows why. In Causa:
+>
+> 🧭 a Planner recalls what explained earlier changes (Meterless H-MEM) and ranks hypotheses
+> 🔎 an Analyst tests each one with SQL in Zetaris, joining the ERP and CRM in a single federated query
+> ⚖️ a Critic recomputes every figure and sends the Analyst back for more evidence until the draft holds up
+> 📝 a Reporter writes an answer where every number links to the query behind it, with a confidence score
+> 🧠 all reasoning runs on NVIDIA Nemotron through Meterless Nightshift, and every step is logged with the model that handled it
+>
+> On a control question with no planted cause, it reported the drop, said the cause wasn't established, and lowered its confidence.
+>
+> ▶️ Replay real runs: https://harshitaadlakha.github.io/causa/app/
+> 💻 Code: https://github.com/HarshitaAdlakha/causa
+>
+> 🙏 Special thanks to GenAI Works for organising a hackathon about agents that do real work. To Zetaris for a data layer that let our agents query two systems as one, to Meterless for H-MEM and Nightshift, to NVIDIA for Nemotron, and to Space XAI and Cursor for supporting the builders. And to every team that built alongside us.
+>
+> #Hackathon #AIAgents #OpenAgentHackathon #GenAIWorks #Zetaris #Meterless #NVIDIA #Nemotron #BuildInPublic
+
+**Tags to add when posting** (type @ and pick the page): GenAI Works, Zetaris, Meterless, NVIDIA, Space XAI, Cursor.
+
+## LinkedIn post (Paras, personal)
+
+Images: `linkedin-loop.png`, `linkedin-product.png`. Or attach `docs/video/Causa-pitch-3min.mp4`.
+
+> A fluent answer is easy. An answer where every number survives a recount is what makes it usable.
+>
+> For the Open Agent Hackathon 2026 (GenAI Works), Harshita and I built Causa: ask why revenue moved, and four agents investigate it across an ERP and a CRM, then answer with the SQL behind every claim.
+>
+> The design choice I'd make again: the model never does arithmetic. Every figure comes from a query, the Critic agent re-derives it from the rows before anything is released, and the report is blocked if it quotes a number that isn't in the evidence. That turns "trust the AI" into "check the AI".
+>
+> What I learned building it:
+> ⚖️ The critic loop is the product. The first revision is where answers got right: "drill into the driver", "check those accounts in the CRM".
+> 📉 Confidence has to fall when the "why" is missing. Our control question first scored 95%; now no CRM evidence means the cause is reported as not established.
+> 🔗 Federation matters. Zetaris let one query join ERP customers to CRM events, which is where the "why" lives.
+> 🧠 Memory changes the plan. Meterless H-MEM stores what explained each change, and the next investigation tests that first.
+>
+> Systems engineering habit: make every step observable. Each run writes a trace of every agent, query and Nemotron model call, and the replay page plays it back.
+>
+> ▶️ Replay real runs: https://parasadlakha.github.io/causa/app/
+> 💻 Code: https://github.com/ParasAdlakha/causa
+>
+> Thank you to GenAI Works, Zetaris, Meterless, NVIDIA and Space XAI with Cursor.
+>
+> #AIAgents #MultiAgentSystems #LLM #SystemsEngineering #Zetaris #Meterless #NVIDIA #Nemotron
+
+## X post (under 280 characters)
+
+> We built Causa at the #OpenAgentHackathon by @GenAIWorks 🧠
+>
+> Ask "why did revenue drop?" → 4 agents investigate in Zetaris (ERP + CRM), a critic recomputes every number, every claim cites its SQL.
+>
+> Runs on NVIDIA Nemotron via Meterless.
+>
+> harshitaadlakha.github.io/causa/app
+
+Put the repo link in a reply: github.com/HarshitaAdlakha/causa. Check each sponsor's handle on X before posting.
