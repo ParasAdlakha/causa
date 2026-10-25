@@ -22,7 +22,7 @@ export const config = {
     apiKey: env("ZETARIS_API_KEY"),
     erpSource: env("ZETARIS_ERP_SOURCE", "causa_erp"),
     crmSource: env("ZETARIS_CRM_SOURCE", "causa_crm"),
-    timeoutMs: 90_000,
+    timeoutMs: 180_000,
   },
   meterless: {
     baseUrl: normaliseBaseUrl(env("METERLESS_BASE_URL", "http://127.0.0.1:8088/v1")),

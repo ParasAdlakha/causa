@@ -9,7 +9,18 @@ export interface QueryRows {
   rows: unknown[][];
 }
 
+// Zetaris runs Spark underneath; on a loaded laptop a query can stall. One retry
+// after a timeout or a 5xx usually goes through.
 export async function zetarisSql(sql: string, limit = 1000): Promise<QueryRows> {
+  try {
+    return await zetarisOnce(sql, limit);
+  } catch (err) {
+    if (!/timeout|aborted|HTTP 5\d\d/i.test((err as Error).message)) throw err;
+    return zetarisOnce(sql, limit);
+  }
+}
+
+async function zetarisOnce(sql: string, limit: number): Promise<QueryRows> {
   if (!config.zetaris.apiKey) throw new Error("ZETARIS_API_KEY is not set (create one in the Zetaris web UI)");
   const res = await fetch(`${config.zetaris.restUrl}/sql-editor/sqls/run`, {
     method: "POST",
