@@ -334,7 +334,8 @@ src/
   server.ts           Web UI, POST /run, live event stream, feedback
   cli.ts              Command line
 public/index.html     The web UI
-scripts/              Data generator, Zetaris registration (SQL + runner), examples, conformance
+scripts/              Data generator, Zetaris registration (SQL + runner), examples, conformance, replay export
+scripts/media/        How the slides, deck, screenshots and videos were built (see its README)
 docker/initdb/        ERP and CRM database dumps loaded by causa-db
 data/                 Seed for SAMPLE_MODE and the data README
 vendor/hmem/          Meterless H-MEM reference engine and conformance suite (Apache-2.0)

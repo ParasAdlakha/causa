@@ -4,3 +4,4 @@ node_modules/
 logs/*.jsonl
 .memory/
 .DS_Store
+scripts/media/rec/
