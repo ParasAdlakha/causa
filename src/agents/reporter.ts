@@ -48,6 +48,8 @@ export function rememberFindings(ctx: Context, draft: Draft, memory: Investigati
   return [id];
 }
 
+const COMMERCIAL_EVENTS = ["contract_ended", "new_contract", "price_renegotiated", "tender"];
+
 function score(ctx: Context, draft: Draft, last: Critique): { confidence: number; reason: string } {
   const reasons: string[] = [];
   let c = 0.45;
@@ -60,9 +62,14 @@ function score(ctx: Context, draft: Draft, last: Critique): { confidence: number
     c += 0.2;
     reasons.push("the price/volume split explains the change");
   } else reasons.push("no single driver explains the change");
-  if (draft.claims.some((x) => x.kind === "context" && !x.text.includes("no notable"))) {
+  // The "why" needs a commercial event in the CRM; a driver with none is a "what" without a cause.
+  const commercial = ctx.queries.some((q) => q.kind === "crm" && q.rows.some((r) => COMMERCIAL_EVENTS.includes(String(r[2]))));
+  if (commercial) {
     c += 0.05;
     reasons.push("CRM events corroborate it");
+  } else if (drivers.length) {
+    c -= 0.25;
+    reasons.push("no contract, tender or pricing event in the CRM explains it, so the cause is not established");
   }
   if (draft.claims.some((x) => x.kind === "drilldown")) {
     c += 0.1;

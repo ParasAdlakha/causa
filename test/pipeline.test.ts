@@ -64,6 +64,14 @@ test("anti-hardcoding: different questions give different, data-derived answers"
   assert.match(france.report!.markdown, /price renegotiated/i, "cites the CRM discount events");
 });
 
+test("a control question with no planted cause is not reported with high confidence", async () => {
+  const japan = await investigate("Why did revenue in Japan change in Q2 1996 compared with Q2 1995?");
+  assert.equal(japan.status, "success");
+  assert.ok(japan.report!.confidence <= 0.75, `confidence ${japan.report!.confidence}`);
+  assert.ok(germany.report!.confidence > japan.report!.confidence, "a corroborated cause scores higher than an unexplained one");
+  assert.match(japan.report!.confidenceReason, /cause is not established/);
+});
+
 test("anti-hardcoding: runtime code never reads the example outputs", () => {
   const src = path.join(import.meta.dirname, "..", "src");
   const files = fs.readdirSync(src, { recursive: true }).map(String).filter((f) => f.endsWith(".ts"));
