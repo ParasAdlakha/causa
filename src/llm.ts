@@ -35,7 +35,19 @@ export async function providerStatus(): Promise<{ state: ProviderState; models: 
   }
 }
 
+// Hosted models occasionally return an empty answer or a 5xx; one retry after a
+// short pause usually succeeds. A second failure goes to the caller's fallback.
 export async function chat(messages: ChatMessage[], opts: { deep?: boolean; temperature?: number } = {}): Promise<ChatResult> {
+  try {
+    return await chatOnce(messages, opts);
+  } catch (err) {
+    if (!/HTTP 5\d\d|empty answer/.test((err as Error).message)) throw err;
+    await new Promise((r) => setTimeout(r, 3_000));
+    return chatOnce(messages, opts);
+  }
+}
+
+async function chatOnce(messages: ChatMessage[], opts: { deep?: boolean; temperature?: number }): Promise<ChatResult> {
   if (!config.meterless.token) throw new Error("METERLESS_RUNTIME_TOKEN is not set (copy it from Nightshift's Console)");
   const started = Date.now();
   const res = await fetch(`${config.meterless.baseUrl}/chat/completions`, {
