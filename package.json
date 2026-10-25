@@ -15,7 +15,6 @@
     "test": "tsx --test test/*.test.ts",
     "conformance": "node scripts/conformance.mjs",
     "zetaris:register": "tsx scripts/register-zetaris.ts",
-    "sample:export": "tsx scripts/export-sample.ts",
     "examples": "tsx scripts/run-examples.ts"
   },
   "devDependencies": {

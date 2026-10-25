@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Causa</title>
+<style>
+  :root {
+    --bg: #f6f5f1; --panel: #ffffff; --ink: #1d1c1a; --muted: #6b6860; --line: #e3e0d8;
+    --accent: #2f5d50; --accent-soft: #e4eee9; --warn: #9a5b13; --bad: #a3322a; --good: #2f6b3a;
+    --planner: #5b4fa8; --analyst: #2f6f9e; --critic: #a3532a; --reporter: #2f6b3a; --orch: #6b6860;
+    --mono: ui-monospace, "Cascadia Code", Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #141413; --panel: #1d1c1a; --ink: #ecebe6; --muted: #a09d94; --line: #33312d;
+      --accent: #8cc4ae; --accent-soft: #23302b; --warn: #e0a95a; --bad: #e88b82; --good: #8cc79a;
+      --planner: #a79cf0; --analyst: #84b9e0; --critic: #e9a27a; --reporter: #8cc79a; --orch: #a09d94;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header { padding: 22px 24px 8px; max-width: 1240px; margin: 0 auto; display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 18px; }
+  h1 { margin: 0; font-size: 26px; letter-spacing: -0.5px; }
+  .tag { color: var(--muted); }
+  .pills { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+  .pill { font-size: 12.5px; padding: 3px 10px; border-radius: 99px; border: 1px solid var(--line); background: var(--panel); color: var(--muted); }
+  .pill b { font-weight: 600; }
+  .pill.on b { color: var(--good); } .pill.off b { color: var(--bad); }
+  main { max-width: 1240px; margin: 0 auto; padding: 8px 24px 40px; }
+  form { display: flex; gap: 10px; margin: 10px 0 10px; }
+  input[type=text] { flex: 1; min-width: 0; padding: 12px 14px; font-size: 16px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); }
+  button { font: inherit; cursor: pointer; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); padding: 8px 14px; }
+  button.primary { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 600; padding: 10px 20px; }
+  button:disabled { opacity: .5; cursor: default; }
+  .examples { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+  .examples button { font-size: 13px; padding: 5px 11px; border-radius: 99px; color: var(--muted); }
+  .grid { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 18px; align-items: start; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } form { flex-direction: column; } }
+  section { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; }
+  section h2 { margin: 0 0 10px; font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; }
+  .empty { color: var(--muted); font-size: 14px; }
+  #timeline { list-style: none; margin: 0; padding: 0; max-height: 640px; overflow-y: auto; }
+  #timeline li { display: grid; grid-template-columns: 26px 92px 1fr; gap: 8px; padding: 6px 0; border-bottom: 1px dashed var(--line); font-size: 13px; }
+  #timeline li:last-child { border-bottom: 0; }
+  .step { color: var(--muted); font-family: var(--mono); font-size: 12px; }
+  .agent { font-weight: 600; font-size: 12.5px; }
+  .a-PlannerAgent { color: var(--planner); } .a-AnalystAgent { color: var(--analyst); } .a-CriticAgent { color: var(--critic); } .a-ReporterAgent { color: var(--reporter); } .a-Orchestrator { color: var(--orch); }
+  .action { font-family: var(--mono); font-size: 12px; }
+  .handoff { color: var(--muted); }
+  .model { display: inline-block; font-size: 11px; padding: 0 6px; border-radius: 6px; background: var(--accent-soft); color: var(--accent); font-family: var(--mono); }
+  .st-error, .st-fallback { color: var(--warn); }
+  .summary { color: var(--muted); word-break: break-word; }
+  #report h3 { font-size: 16px; margin: 18px 0 6px; }
+  #report p, #report li { margin: 6px 0; }
+  #report ul { padding-left: 20px; }
+  .lead { font-size: 17px; }
+  .cite { font-family: var(--mono); font-size: 11.5px; color: var(--accent); background: var(--accent-soft); border-radius: 5px; padding: 0 4px; text-decoration: none; }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 0; padding-top: 12px; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--muted); }
+  .meta span { background: var(--bg); border-radius: 6px; padding: 2px 8px; }
+  .conf { font-weight: 600; color: var(--good); }
+  .feedback { margin-top: 12px; display: flex; gap: 8px; align-items: center; font-size: 13px; color: var(--muted); }
+  details { border-top: 1px solid var(--line); padding: 8px 0; }
+  details:first-of-type { border-top: 0; }
+  summary { cursor: pointer; font-size: 13.5px; }
+  summary code { font-family: var(--mono); color: var(--accent); }
+  pre { font-family: var(--mono); font-size: 12px; background: var(--bg); padding: 10px; border-radius: 8px; overflow-x: auto; white-space: pre-wrap; }
+  table { border-collapse: collapse; font-size: 12px; width: 100%; display: block; overflow-x: auto; }
+  th, td { text-align: left; padding: 3px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th { color: var(--muted); font-weight: 600; }
+  details.hit { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 4px; }
+  .spinner { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); animation: pulse 1s infinite ease-in-out; margin-right: 6px; }
+  @keyframes pulse { 50% { opacity: .25; } }
+  footer { max-width: 1240px; margin: 0 auto; padding: 0 24px 30px; color: var(--muted); font-size: 12.5px; }
+  .stack { display: grid; gap: 18px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Causa</h1>
+  <span class="tag">Ask why a number moved. Agents test each explanation in your data and answer with cited evidence.</span>
+  <div class="pills" id="pills"><span class="pill">checking services…</span></div>
+</header>
+<main>
+  <form id="ask">
+    <input type="text" id="question" maxlength="500" autocomplete="off" placeholder="e.g. Why did revenue in Germany drop in Q3 1996 compared with Q3 1995?">
+    <button class="primary" id="go" type="submit">Investigate</button>
+  </form>
+  <div class="examples" id="examples"></div>
+  <div class="grid">
+    <section>
+      <h2>Agents at work</h2>
+      <div id="status" class="empty">Each step appears here as it happens: the plan, every SQL query sent to Zetaris, the critic's challenge, revisions, and which Nemotron model answered each call.</div>
+      <ol id="timeline"></ol>
+    </section>
+    <div class="stack">
+      <section>
+        <h2>Answer</h2>
+        <div id="report" class="empty">The cited answer appears here.</div>
+      </section>
+      <section>
+        <h2>Evidence</h2>
+        <div id="evidence" class="empty">Every query the agents ran, with its SQL and result rows.</div>
+      </section>
+    </div>
+  </div>
+</main>
+<footer>Data: Zetaris (federated ERP + CRM). Models: NVIDIA Nemotron via Meterless Nightshift. Memory: Meterless H-MEM. Every run writes a JSONL trace to <code>logs/</code>.</footer>
+<script>
+const EXAMPLES = [
+  "Why did revenue in Germany drop in Q3 1996 compared with Q3 1995?",
+  "Why did revenue per unit fall in France in Q1 1997 compared with Q1 1996?",
+  "Why did United States revenue grow in 1997 compared with 1996?",
+  "Why did revenue in Japan change in Q2 1996 compared with Q2 1995?",
+];
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+let lastResult = null;
+
+for (const q of EXAMPLES) {
+  const b = document.createElement("button");
+  b.type = "button"; b.textContent = q;
+  b.onclick = () => { $("question").value = q; $("question").focus(); };
+  $("examples").append(b);
+}
+
+async function loadStatus() {
+  try {
+    const s = await (await fetch("/api/status")).json();
+    const data = s.data_layer, ai = s.nightshift;
+    $("pills").innerHTML =
+      `<span class="pill ${data.state === "online" ? "on" : "off"}">${data.kind === "sample" ? "Sample data" : "Zetaris"}: <b>${esc(data.state)}</b></span>` +
+      `<span class="pill ${ai.state === "online" ? "on" : "off"}">Nightshift: <b>${esc(ai.state)}</b></span>` +
+      (s.agents === "model" ? `<span class="pill">${esc(ai.model.split("/").pop())}</span>` : `<span class="pill">rule-based agents</span>`);
+  } catch { $("pills").innerHTML = `<span class="pill off">server: <b>offline</b></span>`; }
+}
+
+function addStep(e) {
+  const li = document.createElement("li");
+  const to = e.target_agent ? ` <span class="handoff">→ ${esc(e.target_agent.replace("Agent", ""))}</span>` : "";
+  const model = e.model ? ` <span class="model">${esc(e.model.split("/").pop())}</span>` : "";
+  li.innerHTML = `<span class="step">${e.step}</span><span class="agent a-${esc(e.agent)}">${esc(e.agent.replace("Agent", ""))}${to}</span>` +
+    `<span><span class="action st-${esc(e.status)}">${esc(e.action)}</span>${model}<br><span class="summary">${esc(e.output_summary || e.input_summary || "")}</span></span>`;
+  $("timeline").append(li);
+  li.scrollIntoView({ block: "nearest" });
+}
+
+// Small Markdown subset: the reporter writes paragraphs, ## headings, bullets, **bold** and [Qn] citations.
+function inline(s) {
+  return esc(s).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/\[(Q\d+)\]/g, '<a class="cite" href="#ev-$1" data-q="$1">$1</a>');
+}
+function markdown(md) {
+  const out = []; let list = false, first = true;
+  for (const raw of md.split(/\r?\n/)) {
+    const line = raw.trim();
+    if (/^[-*] /.test(line)) { if (!list) { out.push("<ul>"); list = true; } out.push(`<li>${inline(line.slice(2))}</li>`); continue; }
+    if (list) { out.push("</ul>"); list = false; }
+    if (!line || /^---+$/.test(line)) continue;
+    const h = line.match(/^#{1,4}\s+(.*)/);
+    if (h) out.push(`<h3>${inline(h[1])}</h3>`);
+    else { out.push(`<p class="${first ? "lead" : ""}">${inline(line)}</p>`); first = false; }
+  }
+  if (list) out.push("</ul>");
+  return out.join("");
+}
+
+function showResult(r) {
+  lastResult = r;
+  if (r.status === "error") { $("report").innerHTML = `<p class="st-error">The investigation failed: ${esc(r.error)}</p>`; return; }
+  const rep = r.report;
+  $("report").classList.remove("empty");
+  $("report").innerHTML = markdown(rep.markdown) +
+    `<div class="meta"><span class="conf">confidence ${(rep.confidence * 100).toFixed(0)}%</span><span>${r.evidence.length} queries on ${esc(r.data_source)}</span>` +
+    `<span>${r.collaboration.revision_count} revision(s)</span><span>${esc(r.collaboration.agents_used.length)} agents</span>` +
+    `<span>models: ${esc(r.models_used.map((m) => m.split("/").pop()).join(", ") || "rule-based")}</span><span>${(r.duration_ms / 1000).toFixed(0)} s</span><span>trace: ${esc(r.log_path)}</span></div>` +
+    (r.memory.stored.length ? `<div class="feedback">Was this answer right? It is saved to memory for the next question.
+      <button type="button" data-kind="helpful">Helpful</button><button type="button" data-kind="wrong">Wrong</button><span id="fbmsg"></span></div>` : "");
+  for (const b of $("report").querySelectorAll(".feedback button")) b.onclick = () => feedback(b.dataset.kind);
+  for (const a of $("report").querySelectorAll(".cite")) a.onclick = () => openEvidence(a.dataset.q);
+
+  $("evidence").classList.remove("empty");
+  $("evidence").innerHTML = r.evidence.map((q) =>
+    `<details id="ev-${esc(q.id)}"><summary><code>${esc(q.id)}</code> ${esc(q.purpose)} <span class="summary">· ${q.rows.length} rows · ${q.ms} ms · asked by ${esc(q.requestedBy.replace("Agent", ""))}</span></summary>` +
+    `<pre>${esc(q.sql)}</pre><table><tr>${q.columns.map((c) => `<th>${esc(c)}</th>`).join("")}</tr>` +
+    q.rows.slice(0, 15).map((row) => `<tr>${row.map((v) => `<td>${esc(v)}</td>`).join("")}</tr>`).join("") + `</table></details>`).join("");
+}
+
+function openEvidence(id) {
+  const d = $("ev-" + id); if (!d) return;
+  d.open = true; d.classList.add("hit"); setTimeout(() => d.classList.remove("hit"), 1600);
+}
+
+async function feedback(kind) {
+  const res = await fetch("/api/feedback", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids: lastResult.memory.stored, kind }) });
+  $("fbmsg").textContent = res.ok ? `Saved to H-MEM as ${kind}.` : "Could not save feedback.";
+}
+
+$("ask").onsubmit = (ev) => {
+  ev.preventDefault();
+  const q = $("question").value.trim(); if (!q) return;
+  $("go").disabled = true; $("timeline").innerHTML = "";
+  $("status").className = ""; $("status").innerHTML = `<span class="spinner"></span>Investigating. With Nemotron this takes a few minutes.`;
+  $("report").className = "empty"; $("report").textContent = "Waiting for the agents…";
+  $("evidence").className = "empty"; $("evidence").textContent = "Queries appear when the answer is ready.";
+  const es = new EventSource("/api/stream?question=" + encodeURIComponent(q));
+  const done = (msg) => { es.close(); $("go").disabled = false; $("status").textContent = msg; loadStatus(); };
+  es.addEventListener("step", (m) => addStep(JSON.parse(m.data)));
+  es.addEventListener("result", (m) => { const r = JSON.parse(m.data); showResult(r); done(r.status === "success" ? "Done." : "The investigation failed."); });
+  es.addEventListener("failure", (m) => done("Error: " + JSON.parse(m.data).error));
+  es.onerror = () => done("Lost the connection to the server (another investigation may be running).");
+};
+
+loadStatus();
+</script>
+</body>
+</html>

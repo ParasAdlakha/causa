@@ -34,7 +34,7 @@ export const config = {
   },
   paths: {
     logs: path.join(ROOT, "logs"),
-    memory: path.join(ROOT, ".memory"),
+    memory: process.env.CAUSA_MEMORY_DIR || path.join(ROOT, ".memory"),
     seed: path.join(ROOT, "data", "seed", "causa_seed.json.gz"),
   },
   limits: {
