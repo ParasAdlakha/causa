@@ -52,4 +52,4 @@ Built with Claude Code.
 1. **Every claim is checked before release.** The Critic recomputes each figure from its cited query and blocks the answer until it matches. The answer arrives with the evidence that survived review.
 2. **"What" and "why" from two systems in one question.** Zetaris federation lets the agent go from an ERP revenue drop to the CRM events of the same accounts in one step.
 3. **It gets better at investigating.** H-MEM turns each answer into a prior for the next plan, and user feedback adjusts those priors.
-4. **Honest under uncertainty.** A control question with no planted cause gets "no single driver" instead of an invented story, and the confidence score lists its reasons.
+4. **Honest under uncertainty.** On a control question with no planted cause (Japan, Q2 1996), Causa reports the real drop and its largest accounts, but finds no contract, tender or pricing event in the CRM. So it says the cause is not established, and its confidence falls to 70% (Germany scores 95%).

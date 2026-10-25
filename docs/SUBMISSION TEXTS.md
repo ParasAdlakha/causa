@@ -53,20 +53,40 @@ Copy-ready answers for the HackOS form, the demo script, the channel post and th
 
 ---
 
-## Demo video script (about 3:30)
+## Demo videos
 
-*Record a real run. Live runs take 7–9 minutes, so speed up the waiting and label it on screen ("sped up 8×"). Don't show `.env`, Nightshift's Providers page, or any key or token.*
+All three are cut from one real recorded run on Zetaris and Nemotron (16 minutes end to end). Waiting is fast-forwarded and labelled on screen ("sped up N× · real run"); reading the answer plays in real time. No keys or tokens appear.
 
-| Time | On screen | Narration |
+| File | Length | Use |
 |---|---|---|
-| 0:00–0:20 | Title card, then a revenue chart with a drop | "Revenue in Germany fell fifteen percent last quarter. Why? Today that's a day of an analyst's time, pulling orders from the ERP, slicing them, digging through the CRM. Causa does it in minutes, and shows its work." |
-| 0:20–0:40 | Causa UI. Status pills: Zetaris online, Nightshift online, Nemotron | "Causa has four agents. The data comes from Zetaris, which federates our ERP and CRM databases. The reasoning runs on NVIDIA Nemotron through Meterless Nightshift." |
-| 0:40–1:00 | Click the Germany example, then Investigate. The Planner step appears with `nemotron-3.5-lightning` | "I ask why German revenue dropped in Q3 1996. The Planner first checks its H-MEM memory for past findings, then decides what to test: customer segment, brand, shipping mode." |
-| 1:00–1:40 | Timeline fills with `query_zetaris Q1…Q6`. Open the Zetaris UI briefly to show `causa_erp` and `causa_crm` | "The Analyst tests each hypothesis with real SQL in Zetaris: totals and a price-versus-volume split, the company-wide baseline, and a breakdown for each hypothesis, each scored against the overall trend." |
-| 1:40–2:15 | Critic: `request_revision … 2 new queries asked`, then Analyst Q7, Q8 and the redraft | "Here's the important part. The Critic recomputes every number from its query and checks the draft. It wants the dominant driver drilled into, and the accounts checked in the CRM. So the Analyst goes back for more evidence." |
-| 2:15–2:50 | The answer renders. Click `[Q6]`: CRM rows with "Lost the annual fleet-parts tender…". Click `[Q3]`: the SQL | "The answer: the Automobile segment lost five and a half million, through three accounts that went to zero. The CRM says why: they lost their annual tender to a cheaper competitor on 28 June. Every number links to the SQL and the rows behind it." |
-| 2:50–3:10 | Meta line: models (Lightning, Ultra), 8 queries on Zetaris, trace path. Briefly show a `.jsonl` trace with `"model": "nvidia/…"` | "Every step is logged: which agent, which query, and which Nemotron model answered. Lightning did the reasoning, and Ultra wrote the report." |
-| 3:10–3:30 | Click Helpful. Ask a follow-up about Germany Q4. The plan shows "recalled from memory: test it first" | "And it learns. The finding was stored in H-MEM. Ask a follow-up, and the Planner tests customer segment first, because that's what explained the last change. Causa: answers you can check." |
+| `docs/video/Causa-demo-2min.mp4` | 1:45 | **Submit this one** (the rules ask for 1–4 minutes): narrated demo |
+| `docs/video/Causa-pitch-3min.mp4` | ≈3 min | Pitch: slides, then the demo, then results |
+| `docs/video/Causa-demo.mp4` | silent | Captioned walkthrough for social posts |
+
+**Narration (2-minute demo)**
+
+1. *01 · ASK*: A finance analyst asks the question every monthly review starts with: why did revenue in Germany drop in the third quarter of 1996?
+2. *02 · PLAN*: The Planner checks its H-MEM memory for earlier findings, then plans on NVIDIA Nemotron through Meterless Nightshift: which periods, which hypotheses, in what order.
+3. *03 · TEST*: The Analyst tests each hypothesis with real SQL in Zetaris, which federates the ERP and the CRM: totals, a price and volume split, the company baseline, and a breakdown for every hypothesis.
+4. *04 · CHALLENGE*: Then the Critic takes over. It recomputes every figure from its query, runs eight checks, and sends the Analyst back for more: drill into the driver, and check those accounts in the CRM.
+5. *05 · ANSWER*: Once the draft holds up, Nemotron Ultra writes the report. A guard rejects any number that is not in the approved evidence.
+6. *06 · RESULT*: The answer: revenue fell fifteen percent, almost all lost volume in the Automobile segment, where three accounts went to zero.
+7. *07 · WHY*: And here is why. One federated query across both systems finds that all three lost their annual fleet parts tender to a cheaper competitor on the twenty-eighth of June.
+8. *08 · EVIDENCE*: Every number carries a citation, and each one opens the exact SQL and rows behind it.
+9. *09 · TRACE*: Confidence ninety-five percent, with its reasons. Every step is in a trace, including which Nemotron model answered each call.
+10. *10 · MEMORY*: Marked helpful, the finding is stored in H-MEM. Ask a follow-up, and the Planner recalls it, testing the dimension that explained the last change first.
+11. *End card*: Causa. Ask why a number moved, and get an answer you can check.
+
+The 3-minute pitch adds the cover, problem, agent-loop, results and closing slides around the same demo. Their script is in the deck's speaker notes (`docs/slides/Causa-slides.pptx`).
+
+## Images
+
+| File | Use |
+|---|---|
+| `docs/img/linkedin-cover.png` (1584×396) | LinkedIn banner / post cover |
+| `docs/img/linkedin-loop.png` (1200×627) | Post image: the four agents and a real answer |
+| `docs/img/linkedin-product.png` (1200×627) | Post image: the product, a real run |
+| `docs/img/done.png`, `answer.png`, `evidence-crm.png`, `evidence-sql.png`, `recall.png`, `timeline-critic.png` | Screenshots from the real run |
 
 ---
 
