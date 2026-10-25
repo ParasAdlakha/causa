@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Causa slides</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap">
+<style>
+/* Source for every slide and graphic. Each .frame is rendered to a PNG (render.mjs); the deck and PDF are built from those PNGs. */
+:root{--bg:#f6f5f1;--surface:#fff;--ink:#1d1c1a;--ink-2:#55524b;--ink-3:#8a867c;--line:#e3e0d8;--accent:#2f5d50;--accent-soft:#e4eee9;
+  --planner:#5b4fa8;--analyst:#2f6f9e;--critic:#a3532a;--reporter:#2f6b3a;--zetaris:#2563eb;--meterless:#7c3aed;--nvidia:#76b900;--dark:#141413;
+  --display:"Space Grotesk",Inter,sans-serif;--sans:Inter,system-ui,sans-serif;--mono:"JetBrains Mono",ui-monospace,monospace}
+*{box-sizing:border-box}
+body{margin:0;background:#888;font-family:var(--sans);color:var(--ink);-webkit-font-smoothing:antialiased}
+.frame{background:var(--bg);position:relative;overflow:hidden;margin:0 0 40px}
+.slide{width:1920px;height:1080px;padding:84px 110px;display:flex;flex-direction:column}
+.dark{background:var(--dark);color:#ecebe6}
+h1,h2,h3{font-family:var(--display);margin:0;letter-spacing:-.03em;line-height:1.02}
+p{margin:0}
+.kicker{font:600 22px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
+.head{margin-bottom:52px}
+.head h2{font-size:70px;font-weight:700;margin-top:18px}
+.logo{display:flex;align-items:center;gap:18px;font:700 46px/1 var(--display);letter-spacing:-.02em}
+.logo i{width:58px;height:58px;border-radius:16px;background:var(--accent);color:#fff;display:grid;place-items:center;font-style:normal;font-size:34px}
+.card{background:var(--surface);border:2px solid var(--line);border-radius:26px;padding:34px 38px}
+.shot{border-radius:20px;border:2px solid var(--line);box-shadow:0 30px 60px -30px rgba(29,28,26,.35);display:block;background:#fff;object-fit:cover;object-position:top left}
+.pill{display:inline-flex;align-items:center;gap:12px;font:600 21px/1 var(--mono);padding:14px 20px;border-radius:999px;border:2px solid var(--line);background:var(--surface);white-space:nowrap}
+.pill b{width:12px;height:12px;border-radius:50%;display:inline-block}
+.dark .pill{background:#1f1e1c;border-color:#33312d;color:#ecebe6}
+.foot{margin-top:auto;display:flex;justify-content:space-between;font:500 22px/1 var(--mono);color:var(--ink-3);letter-spacing:.04em}
+.big{font:700 96px/1 var(--display);letter-spacing:-.045em}
+.em{color:var(--accent)}
+.dark .em{color:#8cc4ae}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:32px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:28px}
+.stat b{display:block;font:700 84px/1 var(--display);letter-spacing:-.03em;margin-bottom:16px;color:var(--accent)}
+.stat p{font-size:28px;line-height:1.35;color:var(--ink-2)}
+.stat small{display:block;margin-top:16px;font:500 18px/1.35 var(--mono);color:var(--ink-3)}
+ul.list{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:20px}
+ul.list li{font-size:29px;line-height:1.38;padding-left:36px;position:relative;color:var(--ink-2)}
+ul.list li::before{content:"";position:absolute;left:0;top:14px;width:14px;height:14px;border-radius:4px;background:var(--accent)}
+ul.list li b{color:var(--ink)}
+.quote{font:500 40px/1.3 var(--display);letter-spacing:-.02em}
+.cite{font:600 22px/1 var(--mono);color:var(--accent);background:var(--accent-soft);border-radius:8px;padding:3px 9px;vertical-align:3px}
+.label{font:600 20px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+/* agent loop */
+.agent{border-radius:26px;padding:30px 32px;background:var(--surface);border:3px solid;display:flex;flex-direction:column;gap:14px}
+.agent h3{font-size:44px}
+.agent p{font-size:24px;line-height:1.38;color:var(--ink-2)}
+.agent .m{font:600 18px/1.3 var(--mono);color:var(--ink-3)}
+.arrow{font:700 54px/1 var(--display);color:var(--ink-3);align-self:center}
+.tech{display:grid;grid-template-columns:260px 1fr;gap:28px;align-items:start;padding:26px 0;border-bottom:2px solid var(--line)}
+.tech:last-child{border-bottom:0}
+.tech h3{font-size:38px}
+.tech .tag{font:600 18px/1.3 var(--mono);color:var(--ink-3);margin-top:10px}
+.tech p{font-size:26px;line-height:1.42;color:var(--ink-2)}
+.tech code{font:600 22px var(--mono);color:var(--ink);background:var(--accent-soft);padding:2px 8px;border-radius:6px}
+table.runs{border-collapse:collapse;width:100%;font-size:26px}
+table.runs th{font:600 18px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);text-align:left;padding:0 18px 18px 0}
+table.runs td{padding:20px 18px 20px 0;border-top:2px solid var(--line);vertical-align:top;color:var(--ink-2);line-height:1.35}
+table.runs td b{color:var(--ink)}
+table.runs .n{font:700 34px/1 var(--display);color:var(--accent)}
+table.runs .low{color:var(--critic)}
+.dots{position:absolute;inset:0;background-image:radial-gradient(#e3e0d8 1.6px,transparent 1.6px);background-size:30px 30px;opacity:.7;pointer-events:none}
+.dark .dots{background-image:radial-gradient(#2a2926 1.6px,transparent 1.6px);opacity:1}
+.uniq{display:flex;gap:26px;align-items:flex-start}
+.uniq .num{font:700 64px/1 var(--display);color:var(--accent);min-width:70px}
+.uniq h3{font-size:36px;margin-bottom:10px}
+.uniq p{font-size:25px;line-height:1.4;color:var(--ink-2)}
+</style>
+</head>
+<body>
+
+<!-- 1. Cover -->
+<div class="frame slide dark" id="s1">
+  <div class="dots"></div>
+  <div class="logo" style="position:relative"><i>C</i>Causa</div>
+  <div style="position:relative;margin-top:150px">
+    <h1 class="big" style="font-size:112px;max-width:1720px">Ask why a number moved.<br><span class="em">Get an answer you can check.</span></h1>
+    <p style="font-size:34px;line-height:1.4;color:#a09d94;margin-top:40px;max-width:1350px">Four agents investigate revenue changes across your ERP and CRM, and cite the SQL behind every claim.</p>
+  </div>
+  <div class="foot" style="position:relative;color:#a09d94;align-items:center">
+    <div style="display:flex;gap:14px">
+      <span class="pill"><b style="background:var(--zetaris)"></b>Zetaris</span>
+      <span class="pill"><b style="background:var(--meterless)"></b>Meterless H-MEM · Nightshift</span>
+      <span class="pill"><b style="background:var(--nvidia)"></b>NVIDIA Nemotron</span>
+    </div>
+    <span>Open Agent Hackathon 2026 · Track 2</span>
+  </div>
+</div>
+
+<!-- 2. Problem and users -->
+<div class="frame slide" id="s2">
+  <div class="head"><span class="kicker">The problem</span><h2>&ldquo;Why did this number move?&rdquo; costs a day</h2></div>
+  <div class="grid2" style="gap:60px;flex:1">
+    <div style="display:flex;flex-direction:column;gap:40px">
+      <div class="stat"><b>35%</b><p>of FP&amp;A time goes on insights. The rest is mostly collecting and validating data.</p><small>FP&amp;A Trends Survey 2024 · 2,400+ finance practitioners</small></div>
+      <div class="stat"><b>2 systems</b><p>hold the answer. The ERP knows <i>what</i> moved. The CRM knows <i>why</i>: the lost tender, the new discount, the contract won.</p></div>
+    </div>
+    <div class="card" style="display:flex;flex-direction:column;gap:26px;justify-content:center">
+      <span class="label">Who asks, and what it takes today</span>
+      <ul class="list">
+        <li><b>FP&amp;A analysts, sales and revenue ops</b>, before the monthly review</li>
+        <li>Pull orders, slice by segment, product and customer, and spot the slice that moved</li>
+        <li>Search the CRM for what happened to those accounts</li>
+        <li>Write it up, and hope nobody asks <b>"how do you know?"</b></li>
+      </ul>
+      <p style="font-size:26px;line-height:1.4;color:var(--ink-3)">Dashboards show <i>what</i> changed. The <i>why</i> is a day of manual work, or a guess.</p>
+    </div>
+  </div>
+</div>
+
+<!-- 3. Solution -->
+<div class="frame slide" id="s3">
+  <div class="head" style="margin-bottom:40px"><span class="kicker">The solution</span><h2>A question in. A cited answer out.</h2></div>
+  <div style="display:grid;grid-template-columns:1fr 860px;gap:56px;flex:1;min-height:0">
+    <div style="display:flex;flex-direction:column;gap:34px">
+      <div class="card" style="padding:28px 32px"><span class="label">Question</span><p class="quote" style="margin-top:14px;font-size:36px">Why did revenue in Germany drop in Q3 1996 compared with Q3 1995?</p></div>
+      <div class="card" style="padding:28px 32px;flex:1"><span class="label">Causa's answer, in 8 minutes</span>
+        <p style="font-size:28px;line-height:1.45;margin-top:16px;color:var(--ink-2)">Revenue fell <b style="color:var(--ink)">15.1% ($3.73M)</b> <span class="cite">Q1</span>, almost all lost volume in the <b style="color:var(--ink)">Automobile</b> segment <span class="cite">Q4</span>. Three accounts went to zero <span class="cite">Q3</span>. The CRM shows they <b style="color:var(--ink)">lost their annual fleet-parts tender to a cheaper competitor on 28 June</b>, after escalating late deliveries in March <span class="cite">Q6</span>.</p>
+        <p style="font:600 22px/1.4 var(--mono);color:var(--accent);margin-top:22px">confidence 95% · 9 queries on Zetaris · 1 revision · Nemotron</p>
+      </div>
+    </div>
+    <img class="shot" src="../img/answer.png" style="width:860px;height:100%">
+  </div>
+</div>
+
+<!-- 4. How it works -->
+<div class="frame slide" id="s4">
+  <div class="head"><span class="kicker">How it works</span><h2>Four agents, and the critic has a veto</h2></div>
+  <div style="display:grid;grid-template-columns:1fr 60px 1fr 60px 1fr 60px 1fr;gap:0;align-items:stretch">
+    <div class="agent" style="border-color:var(--planner)"><span class="m" style="color:var(--planner)">01 · PLANNER</span><h3>Plan</h3><p>Recalls past findings from H&#8209;MEM. Sets the periods and focus. Ranks hypotheses: what explained earlier changes goes first.</p></div>
+    <div class="arrow">→</div>
+    <div class="agent" style="border-color:var(--analyst)"><span class="m" style="color:var(--analyst)">02 · ANALYST</span><h3>Test</h3><p>SQL in Zetaris: totals and a price/volume split, a company baseline, breakdowns scored against the trend, a drill-down, CRM events.</p></div>
+    <div class="arrow">⇄</div>
+    <div class="agent" style="border-color:var(--critic)"><span class="m" style="color:var(--critic)">03 · CRITIC</span><h3>Challenge</h3><p>Recomputes every figure from its query. 8 checks plus a Nemotron challenge. Sends the Analyst back with new queries, or approves.</p></div>
+    <div class="arrow">→</div>
+    <div class="agent" style="border-color:var(--reporter)"><span class="m" style="color:var(--reporter)">04 · REPORTER</span><h3>Answer</h3><p>A cited answer with a confidence score and its reasons. Stores what explained the change in H&#8209;MEM.</p></div>
+  </div>
+  <div class="grid3" style="margin-top:44px">
+    <div class="card" style="padding:26px 30px"><span class="label">Loop</span><p style="font-size:25px;line-height:1.4;margin-top:12px;color:var(--ink-2)">Critic ⇄ Analyst, up to 2 revisions with new SQL. Invalid model JSON retries; an unreachable model falls back to computed claims.</p></div>
+    <div class="card" style="padding:26px 30px"><span class="label">Guardrails</span><p style="font-size:25px;line-height:1.4;margin-top:12px;color:var(--ink-2)">The report may only quote figures from approved claims and their queries. No CRM cause? Confidence drops, and the report says why.</p></div>
+    <div class="card" style="padding:26px 30px"><span class="label">Evidence</span><p style="font-size:25px;line-height:1.4;margin-top:12px;color:var(--ink-2)">A JSONL trace of every step, handoff, query and model call. The UI streams it live, and every [Qn] opens its SQL and rows.</p></div>
+  </div>
+</div>
+
+<!-- 5. Stack and sponsor technology -->
+<div class="frame slide" id="s5">
+  <div class="head" style="margin-bottom:24px"><span class="kicker">Stack</span><h2>Where Zetaris, Meterless and NVIDIA do the work</h2></div>
+  <div>
+    <div class="tech"><div><h3 style="color:var(--zetaris)">Zetaris</h3><div class="tag">DATA LAYER</div></div><p>ERP and CRM Postgres databases registered as <code>causa_erp</code> and <code>causa_crm</code> by one SQL script. Every query goes to <code>POST /sql-editor/sqls/run</code>. The CRM step joins account events to ERP customers <b>in one federated query</b>.</p></div>
+    <div class="tech"><div><h3 style="color:var(--meterless)">H-MEM</h3><div class="tag">METERLESS ENGINE</div></div><p>Investigation memory. Findings are stored with <code>driver:</code> and <code>weak:</code> tags. The next plan recalls them and reorders its hypotheses, and Helpful/Wrong feedback updates the trust ledger. Conformance 13/13, plus feature tests.</p></div>
+    <div class="tech"><div><h3 style="color:var(--meterless)">Nightshift</h3><div class="tag">AI PROVIDER</div></div><p>The only model endpoint: <code>/v1/chat/completions</code> with <code>meterless-app: causa</code> and <code>meterless-scope: user</code>. The token is read from the runtime itself.</p></div>
+    <div class="tech"><div><h3 style="color:#4d7a00">Nemotron</h3><div class="tag">NVIDIA MODELS</div></div><p><b>3.5 Lightning 30B-A3B</b> plans, drafts and critiques. <b>3 Ultra 550B-A55B</b> writes the report. Every trace event records the model that answered.</p></div>
+  </div>
+  <div class="foot" style="margin-top:auto"><span>Node.js 22 · TypeScript · no framework · web UI + POST /run + CLI</span><span>SAMPLE_MODE runs with no services</span></div>
+</div>
+
+<!-- 6. Real runs -->
+<div class="frame slide" id="s6">
+  <div class="head" style="margin-bottom:36px"><span class="kicker">Evidence</span><h2>Real runs on Zetaris and Nemotron</h2></div>
+  <table class="runs">
+    <tr><th style="width:24%">Question</th><th>What Causa found</th><th style="width:11%">Confidence</th><th style="width:9%">Queries</th></tr>
+    <tr><td><b>Germany</b>, Q3 1996 vs Q3 1995</td><td>−15.1%: three Automobile accounts lost a fleet-parts tender to a cheaper competitor (CRM, 28 June)</td><td class="n">95%</td><td class="n">9</td></tr>
+    <tr><td><b>France</b>, Q1 1997 vs Q1 1996</td><td>Revenue per unit −9% after a winter volume-discount programme; more units, less revenue each (CRM: price renegotiated)</td><td class="n">90%</td><td class="n">10</td></tr>
+    <tr><td><b>United States</b>, 1997 vs 1996</td><td>+6.5%: two Machinery customers won in December 1996 added $15.6M while the rest of the business slipped</td><td class="n">95%</td><td class="n">8</td></tr>
+    <tr><td><b>Japan</b>, Q2 1996 (control)</td><td>−16.1% across many accounts, with no contract, tender or pricing event in the CRM, so the cause is reported as not established</td><td class="n low">JAPAN_CONF</td><td class="n">JAPAN_Q</td></tr>
+  </table>
+  <div class="foot" style="margin-top:auto"><span>9 passing tests: totals equal independent SQL · different questions, different answers · H-MEM recall changes the plan</span></div>
+</div>
+
+<!-- 7. What's unique -->
+<div class="frame slide" id="s7">
+  <div class="head"><span class="kicker">What's different</span><h2>Built to be checked, not just believed</h2></div>
+  <div class="grid2" style="gap:56px 80px">
+    <div class="uniq"><span class="num">1</span><div><h3>Every number survives a recount</h3><p>The Critic re-derives each figure from its cited query and blocks the answer until it matches. The Reporter can't introduce a new number.</p></div></div>
+    <div class="uniq"><span class="num">2</span><div><h3>What and why, from two systems</h3><p>Zetaris federation takes the agent from an ERP revenue drop to the CRM events of the same accounts in one query.</p></div></div>
+    <div class="uniq"><span class="num">3</span><div><h3>It learns how to investigate</h3><p>H-MEM turns each answer into a prior for the next plan. User feedback raises or lowers how much it trusts that prior.</p></div></div>
+    <div class="uniq"><span class="num">4</span><div><h3>Honest when it doesn't know</h3><p>No CRM evidence behind a driver? The confidence drops and the report says the cause is not established, instead of inventing a story.</p></div></div>
+  </div>
+</div>
+
+<!-- 8. Future work -->
+<div class="frame slide dark" id="s8">
+  <div class="dots"></div>
+  <div class="head" style="position:relative"><span class="kicker" style="color:#a09d94">What's next</span><h2>From revenue to every number in the review</h2></div>
+  <div class="grid2" style="position:relative;gap:60px">
+    <ul class="list" style="gap:24px">
+      <li style="color:#cfcdc6"><b style="color:#fff">More metrics:</b> margin, churn, pipeline, inventory, as SQL templates the planner can choose</li>
+      <li style="color:#cfcdc6"><b style="color:#fff">Real sources:</b> SAP, Salesforce and HubSpot through Zetaris connectors, with no copies</li>
+      <li style="color:#cfcdc6"><b style="color:#fff">Faster:</b> a local Nemotron lane for the critic, and parallel breakdown queries</li>
+      <li style="color:#cfcdc6"><b style="color:#fff">Scheduled:</b> investigate every material variance before the monthly review starts</li>
+    </ul>
+    <div style="display:flex;flex-direction:column;justify-content:flex-end;gap:26px">
+      <div class="logo"><i>C</i>Causa</div>
+      <p style="font-size:32px;line-height:1.4;color:#a09d94">Ask why a number moved. Get an answer you can check.</p>
+      <p style="font:600 24px/1.5 var(--mono);color:#8cc4ae">github.com/ParasAdlakha/causa</p>
+    </div>
+  </div>
+  <div class="foot" style="position:relative;color:#a09d94"><span>Paras Adlakha</span><span>Open Agent Hackathon 2026 · Track 2</span></div>
+</div>
+
+<!-- LinkedIn cover, 1584 x 396 -->
+<div class="frame dark" id="g-cover" style="width:1584px;height:396px;padding:56px 72px;display:flex;flex-direction:column;justify-content:space-between">
+  <div class="dots"></div>
+  <div class="logo" style="position:relative;font-size:38px"><i style="width:48px;height:48px;font-size:28px">C</i>Causa</div>
+  <div style="position:relative;display:flex;justify-content:space-between;align-items:flex-end;gap:40px">
+    <h1 style="font-size:64px;max-width:1000px">Ask why a number moved. <span class="em">Get an answer you can check.</span></h1>
+    <div style="display:flex;flex-direction:column;gap:10px;align-items:flex-end">
+      <span class="pill" style="font-size:17px;padding:10px 16px"><b style="background:var(--zetaris)"></b>Zetaris</span>
+      <span class="pill" style="font-size:17px;padding:10px 16px"><b style="background:var(--meterless)"></b>Meterless</span>
+      <span class="pill" style="font-size:17px;padding:10px 16px"><b style="background:var(--nvidia)"></b>NVIDIA Nemotron</span>
+    </div>
+  </div>
+</div>
+
+<!-- LinkedIn image 2: agent loop, 1200 x 627 -->
+<div class="frame" id="g-loop" style="width:1200px;height:627px;padding:52px 60px;display:flex;flex-direction:column;gap:30px">
+  <div><span class="kicker" style="font-size:17px">Causa · how it works</span><h2 style="font-size:46px;margin-top:12px">Four agents. The critic has a veto.</h2></div>
+  <div style="display:grid;grid-template-columns:1fr 34px 1fr 34px 1fr 34px 1fr;align-items:stretch">
+    <div class="agent" style="border-color:var(--planner);padding:20px;gap:8px"><span class="m" style="font-size:14px;color:var(--planner)">PLANNER</span><p style="font-size:18px">Recalls H-MEM, ranks hypotheses</p></div><div class="arrow" style="font-size:30px">→</div>
+    <div class="agent" style="border-color:var(--analyst);padding:20px;gap:8px"><span class="m" style="font-size:14px;color:var(--analyst)">ANALYST</span><p style="font-size:18px">Tests each one with SQL in Zetaris</p></div><div class="arrow" style="font-size:30px">⇄</div>
+    <div class="agent" style="border-color:var(--critic);padding:20px;gap:8px"><span class="m" style="font-size:14px;color:var(--critic)">CRITIC</span><p style="font-size:18px">Recomputes every figure, asks for more</p></div><div class="arrow" style="font-size:30px">→</div>
+    <div class="agent" style="border-color:var(--reporter);padding:20px;gap:8px"><span class="m" style="font-size:14px;color:var(--reporter)">REPORTER</span><p style="font-size:18px">Cited answer, confidence, memory</p></div>
+  </div>
+  <div class="card" style="padding:22px 26px;border-radius:20px"><span class="label" style="font-size:15px">A real answer</span><p style="font-size:22px;line-height:1.45;margin-top:10px;color:var(--ink-2)">German revenue fell <b style="color:var(--ink)">15.1%</b> <span class="cite" style="font-size:15px">Q1</span>: three Automobile accounts <b style="color:var(--ink)">lost their fleet-parts tender to a cheaper competitor on 28 June</b> <span class="cite" style="font-size:15px">Q6</span>. Confidence 95%.</p></div>
+  <p style="font-size:21px;line-height:1.45;color:var(--ink-2);margin-top:auto">All reasoning on <b>NVIDIA Nemotron</b> through <b>Meterless Nightshift</b>. ERP and CRM federated in <b>Zetaris</b>. Every step, query and model logged.</p>
+</div>
+
+</body>
+</html>

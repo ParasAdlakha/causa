@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Causa Market Brief</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Single reading column; tables in scroll boxes; light and dark. */
+:root{--bg:#f6f5f1;--surface:#fff;--fg:#1d1c1a;--muted:#5b5850;--line:#e0ddd5;--accent:#2f5d50;--accent-soft:#e4eee9;--soft:#f1efea;
+  --display:"Space Grotesk",system-ui,sans-serif;--body:Inter,system-ui,sans-serif;--mono:"JetBrains Mono",ui-monospace,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#141412;--surface:#1c1c19;--fg:#ecebe6;--muted:#a6a298;--line:#2e2d29;--accent:#8cc4ae;--accent-soft:#23302b;--soft:#22221f;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#141412;--surface:#1c1c19;--fg:#ecebe6;--muted:#a6a298;--line:#2e2d29;--accent:#8cc4ae;--accent-soft:#23302b;--soft:#22221f;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.6 var(--body);padding:32px max(16px,env(safe-area-inset-left)) 64px}
+.wrap{max-width:860px;margin:0 auto;display:flex;flex-direction:column;gap:40px}
+h1,h2{font-family:var(--display);letter-spacing:-.02em;line-height:1.1;margin:0;text-wrap:balance}
+h1{font-size:clamp(2rem,5.5vw,3rem)}h2{font-size:1.6rem}
+p{margin:0;max-width:68ch}
+section{display:flex;flex-direction:column;gap:14px}
+.tag{font:500 .72rem/1.4 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.lede{font-size:1.06rem;color:var(--muted)}
+.verdict{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:20px 22px;display:flex;flex-direction:column;gap:10px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.stat b{font:700 1.7rem/1.1 var(--display);color:var(--accent)}.stat span{font-size:.85rem;color:var(--muted)}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:560px;font-size:.9rem}
+th,td{text-align:left;vertical-align:top;padding:10px 12px;border-bottom:1px solid var(--line)}
+th{font:500 .7rem/1.2 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);background:var(--soft)}
+tr:last-child td{border-bottom:0}
+ul{margin:0;padding-left:1.2em;display:flex;flex-direction:column;gap:6px;max-width:70ch}
+.note{font-size:.85rem;color:var(--muted)}
+a{color:var(--accent)}
+footer{font-size:.8rem;color:var(--muted);border-top:1px solid var(--line);padding-top:16px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header style="display:flex;flex-direction:column;gap:12px">
+  <span class="tag">Open Agent Hackathon 2026 · Track 2: The Agent That Can Explain Why · 22–27 Oct 2026</span>
+  <h1>Causa: an agent that explains why revenue moved, and shows its work</h1>
+  <p class="lede">Brief and idea selection for Paras Adlakha. The rules require Zetaris as the data layer, a Meterless Engine in a working feature, Meterless Nightshift as the AI provider, and planner, executor and evaluator agents with critique and revision.</p>
+</header>
+
+<section>
+  <span class="tag">Recommendation</span>
+  <div class="verdict">
+    <p><strong>Build a revenue-variance investigator whose critic checks every number.</strong> "Why did this number move?" is asked in every monthly review. The answer always spans two systems: the ERP shows <em>what</em> changed, and the CRM shows <em>why</em>. That is a natural fit for Zetaris federation, and a question where a fluent but wrong answer is worse than none.</p>
+    <p>It matches Track 2 almost word for word: investigate a complex question across several sources and produce evidence-backed answers. Each sponsor has a load-bearing role. <em>Zetaris</em> joins the ERP and CRM. <em>H-MEM</em> remembers which dimensions explained past changes. <em>Nightshift</em> routes every call to <em>Nemotron</em>.</p>
+  </div>
+</section>
+
+<section>
+  <h2>The problem, in numbers</h2>
+  <div class="stats">
+    <div class="stat"><b>35%</b><span>of FP&amp;A time spent generating insights (FP&amp;A Trends Survey 2024)</span></div>
+    <div class="stat"><b>45%</b><span>of FP&amp;A time on non-value-adding work such as data collection and validation (same survey)</span></div>
+    <div class="stat"><b>2,400+</b><span>finance practitioners surveyed worldwide</span></div>
+    <div class="stat"><b>≈$2.6B</b><span>cloud FP&amp;A solutions market, 2025 (Custom Market Insights)</span></div>
+  </div>
+  <p class="note">Market-size estimates vary widely with definition: broader "financial planning software" reports range from about $4.9B to $6.8B for 2025. Treat the market figure as directional; the time-use figures come from the survey publisher's own summary.</p>
+</section>
+
+<section>
+  <h2>What teams use today</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>Option</th><th>Examples</th><th>What goes wrong</th></tr></thead>
+    <tbody>
+      <tr><td>BI "explain" features</td><td>Power BI's "Explain the increase", Tableau's Explain Data, ThoughtSpot SpotIQ</td><td>Statistical drivers inside one dataset. They don't reach the CRM for the reason, don't challenge their own findings, and don't write an answer you can cite</td></tr>
+      <tr><td>FP&amp;A platforms</td><td>Anaplan, Pigment, Datarails, Vena</td><td>Strong at plan-versus-actual reporting. The narrative explaining a variance is still written by an analyst</td></tr>
+      <tr><td>Chat with your data</td><td>General LLM assistants over a warehouse</td><td>One-shot SQL and a fluent paragraph. No plan, no critique, no guarantee that a figure in the text matches a query</td></tr>
+      <tr><td>Do it yourself</td><td>Spreadsheet pivots, CRM searches, a slide</td><td>A day of work per question, and "how do you know?" has no good answer</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section>
+  <h2>Why this wins the track</h2>
+  <ul>
+    <li><strong>It's the track, literally.</strong> The demo is a complex question, investigated across two sources, answered with evidence, and every step is visible.</li>
+    <li><strong>Real agent collaboration:</strong> the Critic recomputes figures, rejects drafts and requests new SQL, so the loop changes the answer instead of decorating it.</li>
+    <li><strong>Ground truth to check against:</strong> three business stories are planted in generated data, plus a control question with none. Judges can see the agent find causes it was never told about, and decline to invent one.</li>
+    <li><strong>Sponsor tech is load-bearing:</strong> without Zetaris federation there is no "why", and without H-MEM the planner starts cold every time.</li>
+    <li><strong>Safe to demo:</strong> SAMPLE_MODE and rule-based agents keep it running without services, and live runs are recorded with full traces.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>Alternatives we considered</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>Idea</th><th>Why not</th></tr></thead>
+    <tbody>
+      <tr><td>Supply-chain disruption explainer</td><td>Needs live external data (weather, shipping) that's hard to make reproducible and to register in Zetaris</td></tr>
+      <tr><td>Customer churn explainer</td><td>Similar shape, but real churn data is sensitive. Revenue variance is easier to generate realistically with a ground truth</td></tr>
+      <tr><td>General "chat with your ERP"</td><td>Fails the agent bar: one-shot SQL, no critique or revision, nothing to evaluate</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section>
+  <h2>Risks and how we handle them</h2>
+  <ul>
+    <li><strong>The model invents or misquotes a number:</strong> the Critic recomputes every figure from its cited query, and the Reporter's guard rejects any figure outside the approved claims.</li>
+    <li><strong>Correlation read as cause:</strong> confidence drops when no CRM event explains a driver, and the report says the cause isn't established (tested with a control question).</li>
+    <li><strong>Slow hosted reasoning models:</strong> a raised first-token limit, one retry on provider errors, and a fallback to computed claims, all logged in the trace.</li>
+    <li><strong>Laptop limits (12 GB RAM):</strong> one investigation at a time; Zetaris and Nightshift share memory carefully; a sample mode needs no services.</li>
+  </ul>
+</section>
+
+<footer>Sources: <a href="https://fpa-trends.com/article/2024-fpa-trends-survey-results-unveiled">FP&amp;A Trends, 2024 survey results</a> · <a href="https://www.custommarketinsights.com/report/cloud-financial-planning-and-analysis-solution-market/">Custom Market Insights, cloud FP&amp;A solution market</a> · <a href="https://www.researchandmarkets.com/reports/6185187/financial-planning-software-market-outlook">Research and Markets, financial planning software outlook</a></footer>
+</div>
+</body>
+</html>

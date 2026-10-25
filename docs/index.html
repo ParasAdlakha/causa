@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Causa · Ask why a number moved</title>
+<meta name="description" content="Four agents investigate why revenue moved across an ERP and a CRM federated in Zetaris, and cite the SQL behind every claim. Nemotron via Meterless Nightshift, memory in Meterless H-MEM.">
+<meta property="og:image" content="img/linkedin-cover.png">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232f5d50'/%3E%3Cpath d='M21.5 11.3a6.6 6.6 0 1 0 0 9.4l-2.3-2.2a3.4 3.4 0 1 1 0-5z' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Project page: one reading column, wide media. */
+:root{--bg:#f6f5f1;--surface:#fff;--line:#e3e0d8;--ink:#1d1c1a;--ink-2:#55524b;--ink-3:#8a867c;--accent:#2f5d50;--soft:#f1efea;
+  --planner:#5b4fa8;--analyst:#2f6f9e;--critic:#a3532a;--reporter:#2f6b3a;--zetaris:#2563eb;--meterless:#7c3aed;--nvidia:#4d7a00;
+  --display:"Space Grotesk",Inter,system-ui,sans-serif;--sans:Inter,system-ui,sans-serif;--mono:"JetBrains Mono",ui-monospace,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#141413;--surface:#1d1c1a;--line:#33312d;--ink:#ecebe6;--ink-2:#cfcdc6;--ink-3:#a09d94;--accent:#8cc4ae;--soft:#23221f;
+  --planner:#a79cf0;--analyst:#84b9e0;--critic:#e9a27a;--reporter:#8cc79a;--zetaris:#7aa7ff;--meterless:#b794f6;--nvidia:#9bd34a;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#141413;--surface:#1d1c1a;--line:#33312d;--ink:#ecebe6;--ink-2:#cfcdc6;--ink-3:#a09d94;--accent:#8cc4ae;--soft:#23221f;color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.6 var(--sans);-webkit-font-smoothing:antialiased}
+a{color:var(--accent)}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 16px 80px;display:flex;flex-direction:column;gap:64px}
+nav{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:10px;font:700 1.25rem/1 var(--display);letter-spacing:-.02em;color:var(--ink);text-decoration:none}
+.logo i{width:30px;height:30px;border-radius:9px;background:var(--accent);color:#fff;display:grid;place-items:center;font-style:normal}
+.links{display:flex;gap:8px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border-radius:10px;font-weight:600;text-decoration:none;border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+.btn.dark{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+h1,h2,h3{font-family:var(--display);letter-spacing:-.025em;line-height:1.05;margin:0;text-wrap:balance}
+h1{font-size:clamp(2.3rem,6vw,4.2rem);font-weight:700}
+h2{font-size:clamp(1.6rem,3.5vw,2.3rem)}
+h3{font-size:1.2rem}
+p{margin:0;max-width:68ch}
+.lede{font-size:1.15rem;color:var(--ink-2)}
+.kicker{font:500 .75rem/1.4 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
+.em{color:var(--accent)}
+section{display:flex;flex-direction:column;gap:20px}
+video,.shot{width:100%;border-radius:16px;border:1px solid var(--line);background:#fff;box-shadow:0 24px 50px -30px rgba(28,27,25,.4);display:block}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
+.grid4{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.card .n{font:500 .75rem/1 var(--mono);letter-spacing:.08em;color:var(--ink-3)}
+.card p{color:var(--ink-2);font-size:.95rem}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:8px;vertical-align:1px}
+blockquote{margin:0;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px 24px;font-size:1.08rem;line-height:1.6;color:var(--ink-2)}
+blockquote b{color:var(--ink)}
+.cite{font:500 .78rem var(--mono);color:var(--accent);background:var(--soft);border-radius:5px;padding:1px 5px}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:14px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:560px;font-size:.95rem}
+th,td{text-align:left;padding:12px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font:500 .72rem/1.2 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);background:var(--soft)}
+tr:last-child td{border-bottom:0}
+td.r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;font-weight:600}
+pre{margin:0;background:#1d1c1a;color:#ecebe6;border-radius:14px;padding:18px 20px;overflow-x:auto;font:500 .88rem/1.6 var(--mono)}
+footer{font-size:.85rem;color:var(--ink-3);border-top:1px solid var(--line);padding-top:20px}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <nav>
+    <a class="logo" href="#"><i>C</i>Causa</a>
+    <div class="links"><a class="btn" href="slides/Causa-slides.pdf">Slides</a><a class="btn" href="market-brief.html">Market brief</a><a class="btn dark" href="https://github.com/ParasAdlakha/causa">GitHub</a></div>
+  </nav>
+
+  <header style="display:flex;flex-direction:column;gap:20px">
+    <span class="kicker">Open Agent Hackathon 2026 · Track 2: The Agent That Can Explain Why</span>
+    <h1>Ask why a number moved. Get an answer <span class="em">you can&nbsp;check.</span></h1>
+    <p class="lede">Four agents investigate a revenue change across an ERP and a CRM federated in Zetaris. A critic recomputes every figure before the answer is released, and every claim cites the SQL behind it. The reasoning runs on NVIDIA Nemotron through Meterless Nightshift, and Meterless H-MEM remembers what explained earlier changes.</p>
+  </header>
+
+  <section>
+    <video controls preload="metadata" poster="slides/s1.png" src="video/Causa-demo-2min.mp4"></video>
+    <p class="kicker">Narrated two-minute demo of a real run (sound on) · <a href="video/Causa-pitch-3min.mp4">3-minute pitch</a> · <a href="video/Causa-demo.mp4">captioned walkthrough</a> · waiting is sped up and labelled</p>
+  </section>
+
+  <section>
+    <h2>A question in, a cited answer out</h2>
+    <blockquote><span class="kicker">Why did revenue in Germany drop in Q3 1996?</span><br>
+      Revenue fell <b>15.1% ($3.73M)</b> <span class="cite">Q1</span>, almost all lost volume in the <b>Automobile</b> segment <span class="cite">Q4</span>. Three accounts went to zero <span class="cite">Q3</span>. The CRM shows they <b>lost their annual fleet-parts tender to a cheaper competitor on 28 June</b>, after escalating late deliveries in March <span class="cite">Q6</span>. <i>Confidence 95%.</i></blockquote>
+    <img class="shot" src="img/done.png" alt="Causa web UI: the agent timeline on the left with every query and model, the cited answer on the right">
+  </section>
+
+  <section>
+    <h2>Four agents, and the critic has a veto</h2>
+    <div class="grid4">
+      <div class="card"><span class="n" style="color:var(--planner)">01 · PLANNER</span><h3>Plan</h3><p>Recalls past findings from H-MEM, sets the periods and focus, and ranks hypotheses. Whatever explained earlier changes goes first.</p></div>
+      <div class="card"><span class="n" style="color:var(--analyst)">02 · ANALYST</span><h3>Test</h3><p>SQL in Zetaris: totals, a price/volume split, a company baseline, breakdowns scored against the trend, a drill-down, CRM events.</p></div>
+      <div class="card"><span class="n" style="color:var(--critic)">03 · CRITIC</span><h3>Challenge</h3><p>Recomputes every figure from its query. 8 checks plus a Nemotron challenge. Sends the Analyst back with new queries, or approves.</p></div>
+      <div class="card"><span class="n" style="color:var(--reporter)">04 · REPORTER</span><h3>Answer</h3><p>A cited answer with confidence and reasons. Stores what explained the change in H-MEM for next time.</p></div>
+    </div>
+    <img class="shot" src="img/evidence-crm.png" alt="An evidence card: the federated CRM query and its rows, including the contract_ended events">
+  </section>
+
+  <section>
+    <h2>The sponsor technology does the work</h2>
+    <div class="grid2">
+      <div class="card"><span class="n"><span class="dot" style="background:var(--zetaris)"></span>DATA LAYER</span><h3>Zetaris</h3><p>ERP and CRM are registered as <code>causa_erp</code> and <code>causa_crm</code> by one SQL script. Every query goes through Zetaris' REST API, and the CRM step joins both sources in one federated query.</p></div>
+      <div class="card"><span class="n"><span class="dot" style="background:var(--meterless)"></span>METERLESS ENGINE</span><h3>H-MEM</h3><p>Investigation memory: findings tagged with the dimensions that explained them, recalled to reorder the next plan, adjusted by Helpful/Wrong feedback. Conformance 13/13.</p></div>
+      <div class="card"><span class="n"><span class="dot" style="background:var(--meterless)"></span>AI PROVIDER</span><h3>Nightshift</h3><p>The only model endpoint: <code>/v1/chat/completions</code> with the <code>meterless-app</code> and <code>meterless-scope</code> headers.</p></div>
+      <div class="card"><span class="n"><span class="dot" style="background:var(--nvidia)"></span>NVIDIA</span><h3>Nemotron</h3><p>3.5 Lightning plans, drafts and critiques; 3 Ultra writes the report. Every trace event names the model that answered.</p></div>
+    </div>
+<pre>SELECT c.c_name, e.event_date, e.event_type, e.summary
+FROM causa_crm.account_events e                 -- CRM database
+  JOIN causa_erp.customer c ON e.c_custkey = c.c_custkey   -- ERP database
+  JOIN causa_erp.nation n ON n.n_nationkey = c.c_nationkey
+WHERE n.n_name = 'GERMANY' AND c.c_name IN (...)  -- the accounts behind the drop</pre>
+  </section>
+
+  <section>
+    <h2>Real runs</h2>
+    <div class="tbl"><table>
+      <thead><tr><th>Question</th><th>What Causa found</th><th style="text-align:right">Confidence</th></tr></thead>
+      <tbody>
+        <tr><td>Germany, Q3 1996</td><td>Three Automobile accounts lost a fleet-parts tender to a cheaper competitor</td><td class="r">95%</td></tr>
+        <tr><td>France, Q1 1997</td><td>A winter volume-discount programme cut revenue per unit by 9%</td><td class="r">85%</td></tr>
+        <tr><td>United States, 1997</td><td>Two Machinery customers won in December 1996 added $15.6M</td><td class="r">95%</td></tr>
+        <tr><td>Japan, Q2 1996 (control)</td><td>A real drop, but no CRM event explains it, so the cause is reported as not established</td><td class="r">JAPAN_CONF</td></tr>
+      </tbody>
+    </table></div>
+    <p class="lede">Each run's full result and JSONL trace (every step, query and model) is in <a href="https://github.com/ParasAdlakha/causa/tree/main/output_examples">output_examples</a>.</p>
+  </section>
+
+  <section>
+    <h2>Team</h2>
+    <div class="grid2">
+      <div class="card"><h3>Paras Adlakha</h3><p>Aerospace, electronics and systems engineering. Agents, data layer and integrations.</p></div>
+    </div>
+  </section>
+
+  <footer>Causa is a hackathon prototype on synthetic data. Source, setup, tests and references are on <a href="https://github.com/ParasAdlakha/causa">GitHub</a>.</footer>
+</main>
+</body>
+</html>

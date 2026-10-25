@@ -1,147 +1,399 @@
 # Causa
 
-**Ask why a number moved. Causa's agents test each explanation against your data and answer with cited evidence.**
+**Ask why a number moved. Get an answer you can check.**
 
-> "Why did revenue in Germany drop in Q3 1996?"
->
-> Revenue fell 15.1% ($3.73M), almost entirely through lost volume in the Automobile segment. Three accounts stopped ordering after they lost their annual fleet-parts tender to a cheaper competitor on 28 June 1996 (CRM), after escalating late deliveries in March. [Q1][Q3][Q6]
+Revenue in Germany fell 15% last quarter. Why? Today an analyst spends a day finding out: pulling orders from the ERP, slicing them by segment, product and customer, then searching the CRM for what happened to those accounts. Causa does that investigation with four AI agents and shows its work. The **Planner** recalls past findings and ranks hypotheses. The **Analyst** tests each one with SQL in **Zetaris**, which federates the ERP and the CRM. The **Critic** recomputes every figure and sends the Analyst back for more evidence. The **Reporter** writes an answer where every number links to the query behind it. The reasoning runs on **NVIDIA Nemotron** through **Meterless Nightshift**, and **Meterless H-MEM** remembers what explained earlier changes, so the next investigation starts there.
 
-Every number in that answer comes from a SQL query the agents ran in **Zetaris**, across an ERP database and a CRM database. A critic agent checks every claim against its query before the answer is released. The planning, drafting and critique run on **NVIDIA Nemotron** through **Meterless Nightshift**, and **Meterless H-MEM** remembers what explained earlier changes, so the next investigation starts there. Every step is written to a JSONL trace.
+Built by **Paras Adlakha** for the **Open Agent Hackathon 2026**, Track 2: *The Agent That Can Explain Why*.
 
-Built for the Open Agent Hackathon 2026, Track 2: *The Agent That Can Explain Why*.
+**🎬 [Narrated 2-minute demo](docs/video/Causa-demo-2min.mp4)** · [3-minute pitch video](docs/video/Causa-pitch-3min.mp4) · [Captioned walkthrough (silent)](docs/video/Causa-demo.mp4) · **📑 [Slides (PDF)](docs/slides/Causa-slides.pdf)** · [PowerPoint](docs/slides/Causa-slides.pptx) · [Project page](https://parasadlakha.github.io/causa/) · [Market brief](docs/market-brief.html)
+
+![Causa: the agents at work on the left, the cited answer on the right](docs/img/done.png)
+
+*A real run on Zetaris and Nemotron. Left: every agent step as it happened, including the Critic's revision request and the model that answered each call. Right: the answer, where each [Qn] opens the SQL and rows behind it.*
+
+**Contents:** [The hackathon](#the-hackathon) · [The problem](#the-problem) · [What Causa does](#what-causa-does) · [Architecture](#architecture) · [How an investigation works](#how-an-investigation-works) · [The agents](#the-agents) · [Zetaris](#zetaris-the-data-layer) · [Meterless H-MEM](#meterless-h-mem-investigation-memory) · [Nightshift and Nemotron](#meterless-nightshift-and-nvidia-nemotron) · [Evidence and traces](#evidence-and-traces) · [Real runs](#real-runs) · [Tests](#tests) · [Run it yourself](#run-it-yourself) · [Repository layout](#repository-layout) · [What we learned](#what-we-learned) · [Limitations and roadmap](#limitations-and-roadmap) · [Pre-existing components](#pre-existing-components) · [Team](#team) · [References](#references)
 
 ---
 
-## Why this matters
+## The hackathon
 
-Every month, finance and sales-ops teams get the same question: *why is this number different from last time?* Answering it means pulling orders from the ERP, slicing them a dozen ways, spotting which slice moved, then searching the CRM for what happened to those accounts. That takes an analyst a day. The common shortcut, a dashboard plus a guess, is how bad decisions get made.
+| | |
+|---|---|
+| **Event** | Open Agent Hackathon 2026, on HackOS |
+| **Dates** | 22–27 October 2026; submissions close 27 October, 23:45 UTC |
+| **Track** | 2: *The Agent That Can Explain Why*: investigate a complex question across several sources and produce evidence-backed answers |
+| **Must use** | Zetaris as the data layer · at least one Meterless Engine in a working feature · Meterless Nightshift as the primary AI provider · NVIDIA through Nightshift where it helps |
+| **Agent bar** | Planner, executor and evaluator, with critique, revision, shared state and branching or retry. A fixed A→B→C chain doesn't qualify |
+| **Judging** | Impact 30 · Technical 20 · Innovation 15 · Demo 15 · Product & UX 10 · Sponsor tech 10 |
 
-Causa does the full investigation in a few minutes and shows its work: the plan, every query, the critic's objections and the revisions. Each claim links to the rows behind it, so the answer can be checked, not just trusted.
+### What the rules ask for, and where it is in Causa
 
-## How it works
+| Requirement | Causa |
+|---|---|
+| Zetaris is the data layer, queried over REST | Every live query goes to `POST /sql-editor/sqls/run`; the ERP and CRM are Zetaris data sources ([`src/data/zetaris.ts`](src/data/zetaris.ts)) |
+| Automated source registration | [`scripts/register_zetaris_sources.sql`](scripts/register_zetaris_sources.sql), run by `npm run zetaris:register` |
+| A Meterless Engine powers a working feature, with a passing test | H-MEM investigation memory: recalled findings reorder the next plan; feedback adjusts trust ([tests](test/pipeline.test.ts), conformance 13/13) |
+| Nightshift is the primary AI provider | The only model endpoint, with the `meterless-app` and `meterless-scope: user` headers ([`src/llm.ts`](src/llm.ts)) |
+| NVIDIA / DGX Spark award: Nemotron powers a feature, logs show the model | Nemotron 3.5 Lightning (plan, draft, critique) and Nemotron 3 Ultra (report); the `model` field in every trace event |
+| Planner, executor, evaluator; critique, revision, retry | Planner → Analyst ⇄ Critic → Reporter, up to 2 revisions, JSON retry, provider retry, fallbacks |
+| Programmatic entry point | `POST /run`, plus a CLI |
+| Evidence of how it reached the output | A JSONL trace per run; the example traces are committed |
+| 3+ input and output examples from real runs | [`input_examples/`](input_examples), [`output_examples/`](output_examples) (4 each) |
+| `SAMPLE_MODE` with no prewritten answers | `SAMPLE_MODE=true` swaps Zetaris for SQLite on the same seed; answers are still computed |
+| `data/README.md` | Source, licence, record counts, registration, regeneration ([`data/README.md`](data/README.md)) |
+| No committed secrets | `.env` is git-ignored; the git history was scanned for the real key, password and token |
+
+---
+
+## The problem
+
+"Why did this number move?" is asked in every monthly business review, and answering it is slow.
+
+- The **FP&A Trends Survey 2024**, of more than 2,400 finance practitioners, found that only **35% of FP&A time is spent generating insights**, while **45% goes on non-value-adding work** such as data collection and validation.
+- The answer to a revenue change almost always spans **two systems**. The ERP shows *what* moved: which segment, product or customer. The CRM shows *why*: a lost tender, a discount programme, a new contract. Few tools join the two.
+- **BI "explain" features** such as Power BI's *Explain the increase*, Tableau's *Explain Data* and ThoughtSpot SpotIQ find statistical drivers inside one dataset. They don't fetch the business reason or challenge their own findings. **Chat-with-your-data assistants** write a fluent paragraph from one-shot SQL, with nothing guaranteeing that a number in the text matches a query.
+
+**Our bet:** an investigation is a loop, not a lookup. Plan the hypotheses, test each one with SQL, have a critic check every figure and demand what's missing, and only then write the answer, with the evidence attached. Remember what worked, so the next investigation starts smarter.
+
+---
+
+## What Causa does
 
 ```mermaid
 flowchart LR
-  Q([Question]) --> P[Planner<br/>recalls H-MEM, picks periods,<br/>focus and hypotheses]
-  P -->|plan| A[Analyst<br/>SQL in Zetaris:<br/>totals, baseline, breakdowns,<br/>drill-down, CRM events]
-  A -->|draft claims| C{Critic<br/>8 checks + model challenge}
-  C -->|revise: new queries, issues| A
-  C -->|approve| R[Reporter<br/>cited answer, confidence]
-  R --> M[(H-MEM<br/>finding stored)]
-  M -.recalled next time.-> P
+    Q["Analyst asks:<br/>why did revenue move?"] --> P["Planner<br/>recall H-MEM, rank hypotheses"]
+    P --> A["Analyst<br/>SQL in Zetaris:<br/>ERP + CRM"]
+    A --> C{"Critic<br/>recompute every figure,<br/>8 checks + Nemotron"}
+    C -- "revise: new queries" --> A
+    C -- "approve" --> R["Reporter<br/>cited answer + confidence"]
+    R --> M[("H-MEM<br/>finding stored")]
+    M -. "next question" .-> P
+    R --> U["Web UI · POST /run · CLI<br/>+ JSONL trace"]
 ```
 
-| Agent | Role | Model (live) |
+| Step | What happens | Powered by |
 |---|---|---|
-| **Planner** | Recalls past findings from H-MEM, works out the two periods and the focus (for example `customer_nation = GERMANY`), and ranks hypotheses. Dimensions that explained earlier changes go first; ones ruled out before go last as controls. | Nemotron 3.5 Lightning |
-| **Analyst** (executor) | Runs SQL through Zetaris: totals and a price/volume split, a company-wide baseline, a breakdown per hypothesis (each value scored against the overall trend), a drill-down into the dominant driver, and the CRM events of the accounts behind it. Drafts claims, each citing query ids. | Nemotron 3.5 Lightning |
-| **Critic** (evaluator) | Checks the draft: every claim cites a query that ran, every figure matches its query, compared with the company-wide trend, price and volume separated, dominant driver drilled into, driver accounts checked in the CRM, secondary drivers tested for confounding. Nemotron adds a free-form challenge. It either asks for new queries and a revision, or approves. | Nemotron 3.5 Lightning |
-| **Reporter** | Writes the cited answer and a confidence score with its reasons. A guard rejects any figure that isn't in the approved claims or their queries, and falls back to a template report if needed. Stores the finding in H-MEM. | Nemotron 3 Ultra 550B |
+| **Ask** | "Why did revenue in Germany drop in Q3 1996 compared with Q3 1995?" | Web UI, `POST /run` or CLI |
+| **Plan** | H-MEM recall; the two periods, the focus (`customer_nation = GERMANY`) and up to 5 ranked hypotheses, each with a reason | Nemotron 3.5 Lightning, H-MEM |
+| **Test** | Totals with a price/volume split, a company-wide baseline, a breakdown per hypothesis scored against the overall trend, a drill-down into the dominant driver, and the CRM events of the accounts behind it | Zetaris (federated SQL) |
+| **Challenge** | Every claim must cite a query that ran, and every figure must match it. Also checked: compared with the baseline, price and volume separated, driver drilled into, CRM consulted, secondary drivers tested for confounding. Nemotron adds a free-form challenge | Nemotron 3.5 Lightning |
+| **Revise** | The Analyst runs the queries the Critic asked for and redrafts (up to 2 rounds) | Zetaris, Nemotron |
+| **Answer** | A Markdown answer with `[Qn]` citations and a confidence score with its reasons. A guard rejects any figure that isn't in the approved claims or their queries | Nemotron 3 Ultra |
+| **Remember** | The finding is stored with `driver:` and `weak:` tags; Helpful/Wrong feedback adjusts its trust | H-MEM |
 
-**Not a fixed chain.** The Critic loops back to the Analyst with new queries (up to 2 revisions). The Planner's hypothesis order branches on memory. Every model call retries once with the validation error when its JSON is invalid. If Nightshift is unreachable, rule-based agents take over and the trace says so. The shared state (plan, queries, totals, claims, critiques) lives in one context that all four agents read and write.
+---
 
-## Sponsor technology
+## Architecture
 
-| | How Causa uses it | Where |
+```mermaid
+flowchart TB
+    subgraph Clients
+        UI["Web UI<br/>live agent timeline · cited answer · evidence"]
+        API["POST /run · CLI"]
+    end
+
+    subgraph Causa["Causa server (Node 22, TypeScript, no framework)"]
+        ORCH["investigate.ts<br/>shared context, loop, trace"]
+        PL["Planner"]
+        AN["Analyst"]
+        CR["Critic"]
+        RE["Reporter"]
+        SQL["analysis.ts<br/>SQL templates, scoring"]
+        MEM["engines/hmem.ts"]
+        LLM["llm.ts<br/>Nightshift client"]
+        TR["trace.ts<br/>logs/*.jsonl"]
+    end
+
+    subgraph Z["Zetaris (Docker)"]
+        ZR["REST API<br/>/sql-editor/sqls/run"]
+        ERP[("causa_erp<br/>orders · lineitem · customer · part …")]
+        CRM[("causa_crm<br/>accounts · account_events")]
+    end
+
+    subgraph M["Meterless"]
+        NS["Nightshift<br/>/v1/chat/completions"]
+        HM["H-MEM engine"]
+    end
+    NV["NVIDIA Nemotron<br/>3.5 Lightning · 3 Ultra"]
+
+    UI --> ORCH
+    API --> ORCH
+    ORCH --> PL & AN & CR & RE
+    AN --> SQL --> ZR
+    ZR --> ERP & CRM
+    PL & RE --> MEM --> HM
+    PL & AN & CR & RE --> LLM --> NS --> NV
+    ORCH --> TR
+```
+
+**Why it is built this way**
+
+- **The model reasons; SQL computes.** Every number comes from a query template filled in by the agents, never from model arithmetic. The model chooses what to test and how to explain it, and the Critic checks each figure against the rows.
+- **Trust nothing the model writes.** Plans and claims are validated JSON. Figures are matched to their cited queries. The report guard rejects any number outside the approved evidence, and model reasoning (`</think>`) is stripped.
+- **The Critic has a veto.** The answer isn't released until the draft passes, or the revision budget is spent. Any open points are then listed in the answer.
+- **Every part runs without services.** With `SAMPLE_MODE=true` and `CAUSA_OFFLINE=true`, the same pipeline runs on SQLite with rule-based agents, and the trace says so.
+
+---
+
+## How an investigation works
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor U as User
+    participant P as Planner
+    participant H as H-MEM
+    participant A as Analyst
+    participant Z as Zetaris
+    participant C as Critic
+    participant R as Reporter
+    participant N as Nightshift → Nemotron
+
+    U->>P: Why did revenue in Germany drop in Q3 1996?
+    P->>H: recall(question)
+    H-->>P: earlier findings (driver / weak tags)
+    P->>N: plan (Lightning)
+    P->>A: periods, focus, ranked hypotheses
+    loop each hypothesis
+        A->>Z: SQL (totals, baseline, breakdown, drill-down)
+        Z-->>A: rows
+    end
+    A->>Z: CRM events ⋈ ERP customers (federated)
+    A->>N: draft cited claims (Lightning)
+    A->>C: draft
+    C->>N: challenge (Lightning)
+    alt checks fail
+        C->>A: revise + new queries
+        A->>Z: more SQL
+        A->>C: redraft
+    end
+    C->>R: approve
+    R->>N: write report (Ultra)
+    R->>H: remember finding
+    R-->>U: cited answer, confidence, trace
+```
+
+---
+
+## The agents
+
+| Agent | Role | Input | Output | Model (live) |
+|---|---|---|---|---|
+| **Planner** | Scope and hypotheses | Question, H-MEM recall | Periods, focus, ≤5 ranked hypotheses with reasons | Nemotron 3.5 Lightning |
+| **Analyst** (executor) | Run SQL, draft claims | Plan; the Critic's requests | Queries with rows; claims citing query ids | Nemotron 3.5 Lightning |
+| **Critic** (evaluator) | Validate and challenge | Draft, queries | 8 checks, issues, new query requests; approve or revise | Nemotron 3.5 Lightning |
+| **Reporter** | Answer and remember | Approved claims, queries, critiques | Cited report, confidence, H-MEM record | Nemotron 3 Ultra |
+
+**Collaboration:** delegation (Planner → Analyst) · critique · revision loop with new queries · shared memory across runs (H-MEM) and a shared context within a run · branching (hypothesis order depends on memory; the drill-down depends on the dominant driver) · retry (invalid JSON goes back to the model with the error; a provider 5xx is retried once) · fallback (a failed model step uses computed claims; an unreachable Nightshift switches to rule-based agents) · confidence scoring with reasons · human feedback into H-MEM.
+
+**Confidence is earned, not asserted.** It starts at 45% and rises for a concentrated driver, CRM corroboration, a drill-down, a baseline comparison and passing checks. It falls for open critic points, and by 25 points when no contract, tender or pricing event in the CRM explains the drivers. That last case means the *what* is known but the *why* isn't.
+
+---
+
+## Zetaris: the data layer
+
+| What | How | Code |
 |---|---|---|
-| **Zetaris** (data layer) | The only data path in live mode. Two Postgres databases are registered as the `causa_erp` and `causa_crm` data sources, and every query goes to `POST /sql-editor/sqls/run`. The CRM step joins `causa_crm.account_events` to `causa_erp.customer` in one federated query. | [`src/data/zetaris.ts`](src/data/zetaris.ts), [`scripts/register_zetaris_sources.sql`](scripts/register_zetaris_sources.sql) |
-| **Meterless H-MEM** (engine) | Investigation memory. The Reporter stores each finding tagged with the dimensions that explained it (`driver:…`) and the ones that didn't (`weak:…`). The Planner recalls them and reorders its hypotheses. Thumbs up/down in the UI feeds H-MEM's trust ledger. Passes the official conformance suite (13/13) and Causa's own tests. | [`src/engines/hmem.ts`](src/engines/hmem.ts), [`vendor/hmem`](vendor/hmem) |
-| **Meterless Nightshift** (AI provider) | Every model call goes to Nightshift's OpenAI-compatible `/v1/chat/completions` with the `meterless-app: causa` and `meterless-scope: user` headers. The token is read from the runtime's own `proxy-token` file. | [`src/llm.ts`](src/llm.ts) |
-| **NVIDIA Nemotron** | Lanes in Nightshift: `nvidia/nemotron-3.5-lightning-30b-a3b` for planning, drafting and critique, and `nvidia/nemotron-3-ultra-550b-a55b` for the final report. The trace records the model that actually answered each call. | traces in [`output_examples/`](output_examples) |
+| **Two sources** | Postgres databases `erp` and `crm` in the `causa-db` container on the Zetaris Docker network | [`docker-compose.yml`](docker-compose.yml) |
+| **Registration** | `CREATE DATASOURCE causa_erp … OPTIONS (jdbcdriver, jdbcurl, username, password)` then `REGISTER DATASOURCE TABLES FROM causa_erp`; the same for `causa_crm` | [`scripts/register_zetaris_sources.sql`](scripts/register_zetaris_sources.sql) |
+| **Queries** | `POST /api/v1.0/sql-editor/sqls/run` with the API key and org id; tables addressed as `causa_erp.lineitem`, `causa_crm.account_events` | [`src/data/zetaris.ts`](src/data/zetaris.ts) |
+| **Federation** | The CRM step joins `causa_crm.account_events` to `causa_erp.customer` and `causa_erp.nation` in one statement | `crmSql` in [`src/analysis.ts`](src/analysis.ts) |
+| **Visible** | Every query, its SQL, row count and timing is in the trace and in the UI's evidence panel | |
 
-## Quick start: no services needed
+A live investigation sends 7–11 queries to Zetaris. `npm run zetaris:register` finishes with a federated check, for example: `921 CRM events joined to ERP customers`.
 
-Needs Node.js 22.13 or later.
+## Meterless H-MEM: investigation memory
 
-```bash
-git clone <this repo> && cd causa
-npm ci
-SAMPLE_MODE=true CAUSA_OFFLINE=true npm start     # then open http://localhost:3100
+**The engine-powered feature: Causa learns which explanations work.**
+
+- **Remember:** after each investigation the Reporter stores a finding, for example *"Germany, Q3 1995 vs Q3 1996: −15.1% (−$3.73M). Explained by customer market segment (Automobile)… Not the cause: part brand…"*. It is tagged `driver:customer_segment`, `weak:part_brand` and `focus:germany`, with provenance pointing to the trace and query ids.
+- **Recall:** the Planner queries H-MEM with each new question. Dimensions that explained earlier changes are tested first, and ruled-out ones last as controls, with "recalled from memory" given as the reason in the plan.
+- **Feedback:** the UI's Helpful/Wrong buttons call H-MEM `feedback`, which updates the memory's confidence through the trust ledger.
+- **Proof:** [`test/pipeline.test.ts`](test/pipeline.test.ts) shows a Germany finding recalled by a follow-up question and moving `customer_segment` to the first hypothesis, and shows feedback lowering confidence. `npm run conformance` runs the official H-MEM conformance suite against the engine Causa imports: **13/13**.
+
+## Meterless Nightshift and NVIDIA Nemotron
+
+| What | How |
+|---|---|
+| **Endpoint** | `POST http://127.0.0.1:8088/v1/chat/completions`, OpenAI-compatible; the only AI provider in the code |
+| **Headers** | `Authorization: Bearer <runtime token>`, `meterless-app: causa`, `meterless-scope: user`, `meterless-ttfb-ms: 240000` |
+| **Token** | Read from the runtime's own `proxy-token` file, so it is never copied by hand |
+| **Health** | `GET /v1/models`; if Nightshift is unreachable, rule-based agents take over and the trace logs `select_mode … fallback` |
+| **Models** | `nvidia/nemotron-3.5-lightning-30b-a3b` for planning, drafting and critique; `nvidia/nemotron-3-ultra-550b-a55b` for the report; both as Nightshift lanes |
+| **Model per call** | Each model step's trace event records the model Nightshift reports, with duration and retry count |
+
+---
+
+## Evidence and traces
+
+Every run writes `logs/trace-<time>-<id>.jsonl`. One line from the Germany run:
+
+```json
+{"step":16,"agent":"CriticAgent","action":"request_revision","target_agent":"AnalystAgent","status":"success",
+ "output_summary":"round 1: 6/8 checks passed, 2 new queries asked, 4 issues","detail":{"checks":[…]}}
 ```
 
-`SAMPLE_MODE=true` loads the bundled seed data into in-memory SQLite instead of querying Zetaris. `CAUSA_OFFLINE=true` runs the rule-based agents instead of calling Nightshift. The SQL, the critic loop, H-MEM and the traces are the same code as live mode, and no answers are prewritten: tests compare report figures with independent queries.
+Data steps carry the query id and SQL. Model steps carry `model`, `duration_ms` and `retry_count`. The UI streams the same events live, and `POST /run` returns the full result: plan, queries with rows, critiques, report, memory ids, models used and trace path.
 
-On Windows PowerShell, set the variables first: `$env:SAMPLE_MODE="true"; $env:CAUSA_OFFLINE="true"; npm start`.
+---
 
-## Full setup: Zetaris and Nightshift
+## Real runs
 
-1. **Zetaris:** download the local platform from Zetaris Cloud ("Run locally"), run `docker compose up -d` in it, and sign in at http://localhost:3000. Create an API key in the user menu.
-2. **Nightshift:** install Meterless Nightshift, add your NVIDIA key under *Setup → Providers*, and add a Nemotron lane (for example *Nemotron 3.5 Lightning*).
-3. **Configure Causa:**
-   ```bash
-   cp .env.example .env     # set ZETARIS_API_KEY and CAUSA_DB_PASSWORD
-   ```
-   On the machine running Nightshift, Causa reads the runtime token by itself. Elsewhere, set `METERLESS_RUNTIME_TOKEN`.
-4. **Load the data and register it in Zetaris:**
-   ```bash
-   docker compose up -d          # causa-db: ERP + CRM Postgres on the Zetaris network
-   npm run zetaris:register      # runs scripts/register_zetaris_sources.sql
-   npm run status                # data layer: zetaris -> online, nightshift -> online
-   ```
-5. **Run:** `npm start` and open http://localhost:3100.
-
-## Usage
-
-**Web UI** at `/`: type a question or pick an example. The left panel streams each agent step live, including which Nemotron model answered. The answer's `[Qn]` citations open the exact SQL and result rows.
-
-**HTTP**, for scripts and judges:
-
-```bash
-curl -X POST http://localhost:3100/run -H "Content-Type: application/json" \
-  -d '{"question": "Why did revenue in Germany drop in Q3 1996 compared with Q3 1995?"}'
-```
-
-It returns the plan, every query (SQL and rows), every critique, the report, the memory ids, the models used and the trace path. `GET /api/status` reports both services. `GET /api/stream?question=…` streams the same run as server-sent events.
-
-**CLI:** `npm run investigate -- "Why did United States revenue grow in 1997?"`, or `npm run examples` to re-run everything in `input_examples/`.
-
-**Docker:** see the [`Dockerfile`](Dockerfile) header. Zetaris and Nightshift are reached through `host.docker.internal`.
-
-## Evidence of how it reached each answer
-
-Each run writes `logs/trace-<time>-<id>.jsonl`, one event per step: agent, action, handoff target, status, retry count, duration, the query id and SQL for data steps, and the model that answered for model steps. The traces of the example runs are committed next to their outputs.
-
-## Examples (real runs)
-
-`input_examples/` holds the questions. `output_examples/` holds the full JSON result, a readable `.md` answer and the `.trace.jsonl` of a live run on Zetaris with Nemotron. The outputs are a record of those runs only: Causa never reads them, and a test checks that.
+All four ran live on Zetaris with Nemotron through Nightshift. Full results, readable answers and traces are in [`output_examples/`](output_examples). Causa never reads them, and a test checks that.
 
 <!-- EXAMPLES TABLE -->
+
+The data has three planted stories, and the agents are never told about them. Japan is a control with none: Causa reports a real drop but doesn't invent a cause.
+
+---
 
 ## Tests
 
 ```bash
-npm test               # pipeline tests in SAMPLE_MODE: no services needed (about 30 s)
-npm run conformance    # official Meterless H-MEM conformance suite against Causa's engine
+npm test               # 9 pipeline tests in SAMPLE_MODE: no services needed (about 40 s)
+npm run conformance    # official Meterless H-MEM conformance suite against Causa's engine (13/13)
 ```
 
 | Test | What it proves |
 |---|---|
-| H-MEM: remembered, recalled, moves hypotheses | The engine-powered feature works: a finding from one investigation is recalled by the next plan and changes which hypothesis is tested first |
+| H-MEM: remembered, recalled, moves hypotheses | The engine-powered feature works end to end |
 | H-MEM: feedback changes confidence | UI feedback reaches the trust ledger |
 | Anti-hardcoding: totals equal an independent SQL query | Report figures come from the data |
-| Anti-hardcoding: different questions, different answers | Germany (volume loss) and France (discount-driven price fall) get different, data-derived explanations |
+| Anti-hardcoding: different questions, different answers | Germany (lost volume) and France (discount-driven price fall) are explained differently, from the data |
 | Anti-hardcoding: runtime never reads example outputs | No canned answers |
-| Trace: 3+ agents, critique, handoffs, every query | The agent activity is real and logged |
+| Control question isn't reported with high confidence | An unexplained change scores lower than a corroborated one, and says why |
+| Trace: 4 agents, a critique, handoffs, every query | The agent activity is real and logged |
 | Germany story found | The planted cause is found without being given to the agent |
-| `stripReasoning` | Nemotron's inline reasoning never leaks into answers |
+| `stripReasoning` | Nemotron's inline reasoning never reaches an answer |
 
-## Data
+---
 
-A synthetic distributor (TPC-H schema, 1995–1997) with an ERP and a CRM. 187,679 rows, generated from a fixed seed, with three planted business stories as ground truth. See [`data/README.md`](data/README.md).
+## Run it yourself
 
-## Limitations
+**Requirements:** Node.js 22.13 or later. For live mode: Docker, the Zetaris local platform, and Meterless Nightshift with a Nemotron lane.
 
-- **Revenue variance only:** the question has to be about revenue for one focus (a country, region or segment) between two periods. Other metrics need new SQL templates.
-- **Synthetic data:** the planted stories are clean, so real data would produce more ambiguous drivers. Order priority sometimes surfaces as a statistically significant but meaningless "driver" (seen in the France run). The critic doesn't yet judge business plausibility.
-- **Speed:** a live run takes 7–9 minutes on a laptop, because hosted Nemotron models reason before answering. The rule-based mode takes about 15 seconds.
-- **One investigation at a time** per server.
-- **Correlation, not proof:** the CRM provides the "why", but a matching event is evidence, not proof of cause. The report says what it found, not more.
+**No services (about 15 seconds per question):**
+
+```bash
+git clone https://github.com/ParasAdlakha/causa.git
+cd causa
+npm ci
+npm test
+SAMPLE_MODE=true CAUSA_OFFLINE=true npm start     # http://localhost:3100
+```
+
+On Windows PowerShell: `$env:SAMPLE_MODE="true"; $env:CAUSA_OFFLINE="true"; npm start`.
+
+**Live: Zetaris and Nemotron**
+
+1. **Zetaris:** download the local platform from Zetaris Cloud ("Run locally"), `docker compose up -d` in it, sign in at http://localhost:3000, and create an API key in the user menu.
+2. **Nightshift:** install Meterless Nightshift, add your NVIDIA key under *Setup → Providers*, and add a Nemotron lane (for example *Nemotron 3.5 Lightning*). Add *Nemotron 3 Ultra* too, for the report.
+3. **Configure:** `cp .env.example .env` and set `ZETARIS_API_KEY` and `CAUSA_DB_PASSWORD`. On the machine running Nightshift, Causa finds the runtime token by itself.
+4. **Data:**
+   ```bash
+   docker compose up -d          # causa-db: ERP + CRM Postgres, joined to the Zetaris network
+   npm run zetaris:register      # registers causa_erp and causa_crm, then a federated check
+   npm run status                # data layer: zetaris -> online · nightshift -> online
+   ```
+5. **Run:** `npm start` and open http://localhost:3100. A live investigation takes 7–14 minutes.
+
+**Use it from code:**
+
+```bash
+curl -X POST http://localhost:3100/run -H "Content-Type: application/json" \
+  -d '{"question": "Why did revenue in Germany drop in Q3 1996 compared with Q3 1995?"}'
+npm run investigate -- "Why did United States revenue grow in 1997 compared with 1996?"
+npm run examples              # re-runs input_examples/ into output_examples/
+```
+
+**Docker:** the [`Dockerfile`](Dockerfile) header shows how to run the app in a container against Zetaris and Nightshift on the host (`host.docker.internal`), or in sample mode.
+
+---
+
+## Repository layout
+
+```
+src/
+  investigate.ts      The loop: Planner → Analyst ⇄ Critic → Reporter → H-MEM, shared context, trace
+  agents/planner.ts   Periods, focus and ranked hypotheses (model or rules), H-MEM recall
+  agents/analyst.ts   Runs the SQL plan, drafts and redrafts cited claims
+  agents/critic.ts    8 checks, figure matching, Nemotron challenge, revision requests
+  agents/reporter.ts  Cited report, figure guard, confidence with reasons, H-MEM write
+  analysis.ts         SQL templates (totals, baseline, breakdowns, federated CRM), trend scoring
+  data/zetaris.ts     Zetaris REST client
+  data/warehouse.ts   Zetaris or SAMPLE_MODE SQLite behind one interface
+  engines/hmem.ts     Investigation memory on Meterless H-MEM
+  llm.ts              Nightshift client: headers, token, retry, reasoning strip
+  trace.ts            JSONL trace
+  server.ts           Web UI, POST /run, live event stream, feedback
+  cli.ts              Command line
+public/index.html     The web UI
+scripts/              Data generator, Zetaris registration (SQL + runner), examples, conformance
+docker/initdb/        ERP and CRM database dumps loaded by causa-db
+data/                 Seed for SAMPLE_MODE and the data README
+vendor/hmem/          Meterless H-MEM reference engine and conformance suite (Apache-2.0)
+input_examples/       Questions; output_examples/ holds real results and traces
+test/                 Pipeline and unit tests
+docs/                 Slides, videos, screenshots, project page, market brief, submission texts
+```
+
+---
+
+## What we learned
+
+- **The Critic is the product.** A fluent first draft was easy. The first revision was where answers got right: the Critic asking "did you drill into the driver?" and "did you check those accounts in the CRM?" is what turned a segment-level guess into a named tender loss.
+- **Let SQL do the arithmetic.** Once every figure had to match a cited query, the model's job became choosing what to test and how to say it. It never computes. That also made the anti-hardcoding tests straightforward.
+- **A guard against new numbers needs to allow sums.** The Reporter's figure guard first rejected Nemotron Ultra's correct "the three accounts together lost $5.19M", because the total wasn't in any single claim. Allowing values from the cited queries, and sums of two or three of them, fixed it without letting invented numbers through.
+- **Confidence has to fall when the "why" is missing.** Our control question scored 95% at first: a big driver, a drill-down and passing checks, but nothing in the CRM. Now no commercial event means minus 25 points, and the report says the cause isn't established.
+- **Reasoning models need time, and the right header.** Nemotron reasons before its first token, and Nightshift stops a cloud lane after 45 seconds by default. The per-request override is `meterless-ttfb-ms` (up to 300000), not `meterless-ttfb`. Ultra also returns its reasoning inline, ending in `</think>`, so we strip everything before it.
+- **Zetaris registration is plain SQL.** `CREATE DATASOURCE <name> DESCRIBE BY "…" OPTIONS (jdbcdriver …, jdbcurl …, username …, password …)` then `REGISTER DATASOURCE TABLES FROM <name>`. Descriptions accept only letters, digits and `_ . - ,`. A Postgres container on the Zetaris Docker network is reachable by its container name.
+- **On a 12 GB laptop, memory is the scheduler.** Zetaris (Spark), Docker and Nightshift together leave little headroom. Nightshift's graphics-card probe hung after a memory-pressure reboot. Ending the stuck `llama-server --list-devices` process let it start in CPU mode.
+
+---
+
+## Limitations and roadmap
+
+**Limitations today**
+- **Revenue only:** the question must be about revenue for one focus (a country, region or segment) between two periods.
+- **Synthetic data with planted stories:** real data will produce more ambiguous drivers. A random dimension sometimes clears the significance test, as order priority did in the France run. The Critic doesn't yet judge whether a driver is plausible in business terms, and there's no multiple-comparisons correction.
+- **Speed:** a live run takes 7–14 minutes on a laptop with hosted reasoning models. The rule-based mode takes about 15 seconds.
+- **One investigation at a time** per server, and no user accounts.
+- **Evidence, not proof:** a matching CRM event supports a cause but doesn't prove it. The report says what it found and its confidence.
+
+**Roadmap**
+- **More metrics:** margin, churn, pipeline and inventory, as SQL templates the Planner can choose.
+- **Real sources:** SAP, Salesforce and HubSpot through Zetaris connectors, with no data copies.
+- **Statistical rigour:** a multiple-comparisons correction, and a Critic check for business plausibility.
+- **Faster:** a local Nemotron lane for the Critic, and parallel breakdown queries.
+- **Scheduled:** investigate every material variance before the monthly review, and post the answers where the team works.
+
+---
 
 ## Pre-existing components
 
 - [`vendor/hmem`](vendor/hmem): the Meterless H-MEM reference implementation and conformance suite (Apache-2.0, upstream commit in `vendor/hmem/UPSTREAM_COMMIT`), used unchanged.
-- Everything else, including the data generator and the data, was written during the hackathon (25–27 October 2026).
+- Everything else, including the agents, the server and UI, the data generator and the data, was written during the hackathon, 25–27 October 2026. No data was prepared before 22 October.
+
+## Team
+
+| | Background | Role on Causa |
+|---|---|---|
+| **Paras Adlakha** | Aerospace, electronics, systems engineering | Everything: agents, data layer, sponsor integrations, demo |
+
+Built with Claude Code.
+
+## References
+
+- FP&A Trends, [2024 FP&A Trends Survey results](https://fpa-trends.com/article/2024-fpa-trends-survey-results-unveiled): more than 2,400 respondents; 35% of FP&A time on insights, 45% on non-value-adding activities.
+- Market size, directional: [Custom Market Insights, cloud FP&A solution market](https://www.custommarketinsights.com/report/cloud-financial-planning-and-analysis-solution-market/) (≈ USD 2.6 billion in 2025). Broader "financial planning software" estimates range from about USD 4.9 to 6.8 billion; definitions differ.
+- [TPC-H benchmark](https://www.tpc.org/tpch/), whose schema the synthetic ERP follows.
+- Sponsor documentation: Zetaris local platform and REST API · Meterless H-MEM, Nightshift and the Meterless Runtime provider contract · [NVIDIA Nemotron](https://build.nvidia.com/).
 
 ## Licence
 
 Apache-2.0.
+
+---
+
+*Causa is a hackathon prototype on synthetic data. Its answers are evidence-backed estimates, not audited findings.*
