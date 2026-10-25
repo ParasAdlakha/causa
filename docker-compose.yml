@@ -1,0 +1,20 @@
+# ERP and CRM source databases for Zetaris to federate. Joins the Zetaris
+# network so Zetaris reaches it as causa-db:5432.
+services:
+  causa-db:
+    image: postgres:16-alpine
+    container_name: causa-db
+    environment:
+      POSTGRES_USER: causa
+      POSTGRES_PASSWORD: ${CAUSA_DB_PASSWORD:?set CAUSA_DB_PASSWORD in .env}
+      POSTGRES_DB: erp
+    volumes:
+      - ./docker/initdb:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "5433:5432"
+    mem_limit: 256m
+    networks: [zetaris]
+networks:
+  zetaris:
+    name: zetaris_default
+    external: true

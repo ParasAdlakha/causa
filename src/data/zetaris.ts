@@ -42,7 +42,7 @@ export async function zetarisStatus(): Promise<{ state: "online" | "unauthorized
 // of a few shapes depending on the endpoint version, so accept each of them.
 function normalise(body: Record<string, unknown>): QueryRows {
   const data = (body.data ?? []) as unknown[];
-  const meta = (body.columns ?? body.columnNames ?? body.schema ?? body.metadata) as unknown;
+  const meta = (body.headers ?? body.columns ?? body.columnNames ?? body.schema ?? body.metadata) as unknown;
   let columns: string[] = [];
   if (Array.isArray(meta)) columns = meta.map((c) => (typeof c === "string" ? c : String((c as Record<string, unknown>).name ?? (c as Record<string, unknown>).columnName ?? "")));
   if (data.length && !Array.isArray(data[0]) && typeof data[0] === "object") {
